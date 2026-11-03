@@ -10,6 +10,9 @@ import { z } from "zod";
 
 const router: IRouter = Router();
 const storage = new ObjectStorageService();
+// Preview runs in a cross-site iframe. Partition the demo capability by the
+// top-level site rather than depending on unrestricted third-party cookies.
+const demoCookie = { httpOnly: true, secure: true, sameSite: "none" as const, partitioned: true, path: "/" };
 const parse = <T>(schema: { safeParse: (v: unknown) => { success: boolean; data?: T } }, value: unknown): T => {
   const result = schema.safeParse(value);
   if (!result.success) fail(400, "Please check the fields and try again.");
@@ -43,8 +46,10 @@ router.post("/together/demo", async (req, res) => {
   const body = parse(StartDemoBody, req.body);
   if (getAuth(req).userId) fail(400, "Sign out before opening a demo. Your own family data will not be reset.");
   const { secret } = await createDemo(body.stage);
-  res.cookie("together_demo", secret, { httpOnly: true, secure: req.secure || req.get("x-forwarded-proto") === "https", sameSite: "lax", maxAge: 7 * 86400000, path: "/" });
+  res.clearCookie("together_demo", { path: "/" });
+  res.cookie("together_demo", secret, { ...demoCookie, maxAge: 7 * 86400000 });
   res.clearCookie("together_demo_persona", { path: "/" });
+  res.clearCookie("together_demo_persona", demoCookie);
   delete req.cookies.together_demo_persona;
   req.cookies.together_demo = secret;
   res.json(await bootstrap(await context(req)));
@@ -55,7 +60,8 @@ router.post("/together/demo/persona", async (req, res) => {
   const body = parse(z.object({ memberId: z.string() }), req.body);
   const [member] = await db.select().from(memberships).where(and(eq(memberships.id, body.memberId), eq(memberships.householdId, c.householdId), eq(memberships.status, "active")));
   if (!member?.userId || !member.userId.startsWith(`demo:${c.householdId}`)) fail(404, "Demo persona is not available.");
-  res.cookie("together_demo_persona", member.id, { httpOnly: true, sameSite: "lax", secure: req.secure || req.get("x-forwarded-proto") === "https", path: "/", maxAge: 7 * 86400000 });
+  res.clearCookie("together_demo_persona", { path: "/" });
+  res.cookie("together_demo_persona", member.id, { ...demoCookie, maxAge: 7 * 86400000 });
   req.cookies.together_demo_persona = member.id;
   res.json(await bootstrap(await context(req)));
 });
@@ -340,6 +346,9 @@ router.delete("/together/account", async (req, res) => {
     await tx.update(memberships).set({ status: "left", name: "Former family member" }).where(eq(memberships.id, c.member.id));
   });
   res.clearCookie("together_demo", { path: "/" });
+  res.clearCookie("together_demo", demoCookie);
+  res.clearCookie("together_demo_persona", { path: "/" });
+  res.clearCookie("together_demo_persona", demoCookie);
   res.sendStatus(204);
 });
 export default router;

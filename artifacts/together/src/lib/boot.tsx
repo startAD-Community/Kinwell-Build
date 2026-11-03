@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetBootstrap,
@@ -34,7 +34,7 @@ export function useBoot() {
 
 export function BootGate({ signedIn, children, loading, error }: { signedIn: boolean; children: ReactNode; loading: ReactNode; error: (msg: string, retry: () => void) => ReactNode }) {
   const qc = useQueryClient();
-  const key = getGetBootstrapQueryKey();
+  const key = useMemo(() => getGetBootstrapQueryKey(), []);
   const q = useGetBootstrap({
     query: {
       queryKey: key,
@@ -49,15 +49,27 @@ export function BootGate({ signedIn, children, loading, error }: { signedIn: boo
   const st = errStatus(q.error);
   const needsDemo = !signedIn && q.isError && [401, 403, 404].includes(st ?? 0);
 
-  useEffect(() => {
-    if (!needsDemo || started.current) return;
+  const openDemo = useCallback(async () => {
+    if (started.current) return;
     started.current = true;
-    startDemo({ stage: "postpartum" })
-      .then(() => getBootstrap())
-      .then((b) => qc.setQueryData(key, b))
-      .catch((e) => setDemoError(errMessage(e)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [needsDemo]);
+    setDemoError(null);
+    try {
+      await startDemo({ stage: "postpartum" });
+      // Verify persistence, not just the creation response, before showing data.
+      const b = await getBootstrap();
+      qc.setQueryData(key, b);
+    } catch (e) {
+      setDemoError(errStatus(e) === 401
+        ? "Your browser couldn't keep the demo session. Open the app in a new tab if embedded cookies are blocked"
+        : errMessage(e));
+    } finally {
+      started.current = false;
+    }
+  }, [qc, key]);
+
+  useEffect(() => {
+    if (needsDemo) void openDemo();
+  }, [needsDemo, openDemo]);
 
   const switchDemo = async (stage: DemoInputStage, reset = false) => {
     const b = await startDemo({ stage, reset });
@@ -94,7 +106,7 @@ export function BootGate({ signedIn, children, loading, error }: { signedIn: boo
   }, [q.data, q.dataUpdatedAt, signedIn, childId]);
 
   if (value) return <BootCtx.Provider value={value}>{children}</BootCtx.Provider>;
-  if (demoError) return <>{error(demoError, () => { started.current = false; setDemoError(null); q.refetch(); })}</>;
+  if (demoError) return <>{error(demoError, () => { void openDemo(); })}</>;
   if (q.isError && !needsDemo) return <>{error(errMessage(q.error), () => q.refetch())}</>;
   return <>{loading}</>;
 }

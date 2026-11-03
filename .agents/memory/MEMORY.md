@@ -1,1 +1,2 @@
 - [Parenthood product boundaries](parenthood-boundaries.md) — preserve all stages and approved feature areas; label clinical and external-service dependencies honestly.
+- [Embedded preview verification](embedded-preview-verification.md) — top-level screenshots do not prove embedded session persistence; check iframe reload and retry.

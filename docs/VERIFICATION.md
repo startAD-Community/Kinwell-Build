@@ -37,4 +37,18 @@ The final transfer-withdraw/decline and ongoing-expiry edits passed the full typ
 - Real notification delivery (no external provider configured).
 - Clinical suitability, content eligibility, local urgent resources or official administrative rules.
 
-No automated browser end-to-end test or independent code review was run for this first build. These checks must happen before using the application with real family health information.
+No independent code review or full-product browser acceptance pass was run for the first build. The focused browser regression below does not replace these checks before using the application with real family health information.
+
+## Embedded-preview session regression
+
+After a reported preview-loading failure, a focused browser test passed:
+
+- Anonymous direct access and reload: bootstrap 200.
+- Real app embedded under a different HTTPS top-level site: automatic demo creation and bootstrap 200 after iframe reload.
+- Synthetic task creation inside the iframe: same household and saved task after reload.
+- Demo reset: a new isolated household.
+- Demo caregiver-persona selection: Alex remained selected after iframe reload.
+- Forced first demo-creation request failure: “Try again” issued a new request and recovered.
+- Session cookie metadata confirmed HttpOnly, Secure, SameSite=None, and partitioned by top-level site. No token values were reported.
+
+The browser could not explicitly be configured to block every unpartitioned third-party cookie. Real Clerk sign-in was not exercised by this regression.
