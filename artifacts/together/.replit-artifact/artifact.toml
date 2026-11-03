@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Together"
+description = "A private shared companion for preparing for pregnancy, pregnancy, and the first year. Coordinate family support, care, recovery, appointments and handovers."
+version = "1.0.0"
+id = "artifacts/together"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25176
+
+[services.development]
+run = "pnpm --filter @workspace/together run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/together", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/together/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25176"
+BASE_PATH = "/"

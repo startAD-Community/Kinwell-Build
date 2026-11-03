@@ -1,0 +1,1 @@
+- [Parenthood product boundaries](parenthood-boundaries.md) — preserve all stages and approved feature areas; label clinical and external-service dependencies honestly.

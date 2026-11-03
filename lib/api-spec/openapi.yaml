@@ -1,36 +1,406 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
-  version: 0.1.0
-  description: API specification
+  version: 1.0.0
 servers:
   - url: /api
-    description: Base API path
-tags:
-  - name: health
-    description: Health operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
-      tags: [health]
-      summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/HealthStatus"
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+  /together/bootstrap:
+    get:
+      operationId: getBootstrap
+      responses:
+        "200":
+          description: Accessible family context and records
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bootstrap" }
+  /together/demo:
+    post:
+      operationId: startDemo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DemoInput" }
+      responses:
+        "200":
+          description: Isolated demo session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bootstrap" }
+  /together/demo/persona:
+    post:
+      operationId: switchDemoPersona
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PersonaInput" }
+      responses:
+        "200":
+          description: Demo account context
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bootstrap" }
+  /together/profile:
+    patch:
+      operationId: updateProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProfileInput" }
+      responses:
+        "200":
+          description: Updated family profile
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bootstrap" }
+  /together/records:
+    post:
+      operationId: createRecord
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RecordInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FamilyRecord" }
+  /together/records/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string }
+    patch:
+      operationId: updateRecord
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RecordUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FamilyRecord" }
+    delete:
+      operationId: deleteRecord
+      responses:
+        "204": { description: Deleted }
+  /together/invitations:
+    post:
+      operationId: createInvitation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InvitationInput" }
+      responses:
+        "200":
+          description: Limited invitation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Invitation" }
+  /together/invitations/{token}:
+    parameters:
+      - in: path
+        name: token
+        required: true
+        schema: { type: string }
+    get:
+      operationId: getInvitation
+      responses:
+        "200":
+          description: Limited invitation preview
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Invitation" }
+    post:
+      operationId: acceptInvitation
+      responses:
+        "200":
+          description: Accepted invitation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Invitation" }
+  /together/export:
+    post:
+      operationId: exportRecords
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExportInput" }
+      responses:
+        "200":
+          description: Parent-selected accessible records
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExportResult" }
+  /together/uploads:
+    post:
+      operationId: requestUpload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UploadInput" }
+      responses:
+        "200":
+          description: Signed upload destination
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UploadResult" }
+  /together/members/{id}:
+    patch:
+      operationId: updateMember
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MemberUpdate" }
+      responses:
+        "200":
+          description: Membership updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+  /together/transfer:
+    post:
+      operationId: requestTransfer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TransferInput" }
+      responses:
+        "200":
+          description: Pending consent from recipient
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FamilyRecord" }
+  /together/transfer/{id}/accept:
+    post:
+      operationId: confirmTransfer
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConsentInput" }
+      responses:
+        "200":
+          description: Transfer accepted by recipient
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+  /together/documents/{id}/file:
+    get:
+      operationId: downloadDocument
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Authenticated file stream
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+  /together/account:
+    delete:
+      operationId: deleteAccount
+      parameters:
+        - in: header
+          name: x-confirm-delete
+          required: true
+          schema: { type: string, enum: [delete-my-private-data] }
+      responses:
+        "204": { description: Private data removed and household left }
 components:
   schemas:
-    HealthStatus:
+    PersonaInput:
+      type: object
+      required: [memberId]
+      properties:
+        memberId: { type: string }
+    ConsentInput:
+      type: object
+      required: [confirmed]
+      properties:
+        confirmed: { type: boolean, enum: [true] }
+    TransferInput:
+      allOf:
+        - $ref: "#/components/schemas/ConsentInput"
+        - type: object
+          required: [targetMemberId]
+          properties:
+            targetMemberId: { type: string }
+    MemberUpdate:
       type: object
       properties:
-        status:
+        status: { type: string, enum: [active, revoked] }
+        grants: { type: array, items: { type: string } }
+        expiresAt: { type: ["string", "null"] }
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string }
+    JsonData:
+      type: object
+      additionalProperties: {}
+    DemoInput:
+      type: object
+      required: [stage]
+      properties:
+        stage: { type: string, enum: [preconception, pregnancy, postpartum] }
+        reset: { type: boolean }
+    ProfileInput:
+      type: object
+      properties:
+        name: { type: string }
+        stage: { type: string, enum: [preconception, pregnancy, postpartum, paused] }
+        role: { type: string }
+        country: { type: string }
+        timezone: { type: string }
+        dueDate: { type: string }
+        birthDate: { type: string }
+        childName: { type: string }
+        priorities: { type: array, items: { type: string } }
+        lowEnergy: { type: boolean }
+        nightMode: { type: boolean }
+        feedingApproach: { type: string }
+        quietHours: { type: string }
+        logCategories: { type: array, items: { type: string } }
+        onboardingComplete: { type: boolean }
+        confirmed: { type: boolean }
+    FamilyProfile:
+      allOf:
+        - $ref: "#/components/schemas/ProfileInput"
+        - type: object
+          required: [id, householdId, isDemo]
+          properties:
+            id: { type: string }
+            householdId: { type: string }
+            isDemo: { type: boolean }
+            memberId: { type: string }
+    RecordInput:
+      type: object
+      required: [kind, title]
+      properties:
+        kind:
           type: string
-      required:
-        - status
-
+          enum: [feed, sleep, diaper, pumping, symptom, checkin, cycle, food, milestone, task, help, shift, appointment, question, medication, administration, document, contact, preference, routine, sleepPlan, checklist, content, saved, dismissal, notification, child, transfer]
+        title: { type: string, minLength: 1, maxLength: 300 }
+        notes: { type: string, maxLength: 10000 }
+        status: { type: string }
+        scope: { type: string, enum: [private, baby, household] }
+        occurredAt: { type: string }
+        childId: { type: string }
+        data: { $ref: "#/components/schemas/JsonData" }
+    RecordUpdate:
+      type: object
+      properties:
+        title: { type: string }
+        notes: { type: string }
+        status: { type: string }
+        scope: { type: string, enum: [private, baby, household] }
+        occurredAt: { type: string }
+        data: { $ref: "#/components/schemas/JsonData" }
+        confirmDuplicate: { type: boolean }
+    FamilyRecord:
+      allOf:
+        - $ref: "#/components/schemas/RecordInput"
+        - type: object
+          required: [id, authorId, authorName, createdAt, updatedAt]
+          properties:
+            id: { type: string }
+            authorId: { type: string }
+            authorName: { type: string }
+            createdAt: { type: string }
+            updatedAt: { type: string }
+    Member:
+      type: object
+      required: [id, name, role, status, grants]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        role: { type: string }
+        status: { type: string }
+        grants: { type: array, items: { type: string } }
+        expiresAt: { type: string }
+    Bootstrap:
+      type: object
+      required: [profile, records, members, serverTime, calendarStatus]
+      properties:
+        profile: { $ref: "#/components/schemas/FamilyProfile" }
+        records: { type: array, items: { $ref: "#/components/schemas/FamilyRecord" } }
+        members: { type: array, items: { $ref: "#/components/schemas/Member" } }
+        serverTime: { type: string }
+        calendarStatus: { type: string }
+    InvitationInput:
+      type: object
+      required: [name, role, grants]
+      properties:
+        name: { type: string }
+        role: { type: string, enum: [caregiver, helper, coadministrator] }
+        grants: { type: array, items: { type: string } }
+        expiresAt: { type: string }
+        requestId: { type: string }
+    Invitation:
+      type: object
+      required: [id, name, role, status, grants]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        role: { type: string }
+        status: { type: string }
+        grants: { type: array, items: { type: string } }
+        url: { type: string }
+        request: { $ref: "#/components/schemas/FamilyRecord" }
+    ExportInput:
+      type: object
+      required: [ids, format]
+      properties:
+        ids: { type: array, items: { type: string } }
+        format: { type: string, enum: [json, text, ics] }
+        purpose: { type: string }
+    ExportResult:
+      type: object
+      required: [filename, content, mimeType]
+      properties:
+        filename: { type: string }
+        content: { type: string }
+        mimeType: { type: string }
+    UploadInput:
+      type: object
+      required: [name, size, contentType, scope]
+      properties:
+        name: { type: string }
+        size: { type: integer, maximum: 10485760 }
+        contentType: { type: string }
+        scope: { type: string, enum: [private, baby] }
+    UploadResult:
+      type: object
+      required: [uploadURL, objectPath, documentId]
+      properties:
+        uploadURL: { type: string }
+        objectPath: { type: string }
+        documentId: { type: string }

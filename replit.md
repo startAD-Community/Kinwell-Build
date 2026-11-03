@@ -1,6 +1,6 @@
-# [Project name]
+# Together — Parenthood MVP
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A private companion for first-time parents and their support circle across preparation, pregnancy, and the first year. “Together” is a working name.
 
 ## Run & Operate
 
@@ -22,11 +22,19 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/together/` — responsive application.
+- `artifacts/api-server/src/routes/together.ts` — protected family API.
+- `lib/db/src/schema/together.ts` — relational household, membership, record, invitation and audit model.
+- `lib/api-spec/openapi.yaml` — API source of truth.
+- `docs/SETUP.md` — setup, privacy, integration and public-launch limitations.
+- `attached_assets/parenthood-mvp-build-brief_1793737534630.md` — user-supplied product brief.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Private adult records are not implicitly accessible to household administrators.
+- Demo households are isolated from authenticated families and reset without deleting real-user records.
+- Google Calendar remains explicitly disconnected with manual scheduling and ICS export until per-user OAuth is configured.
+- Clinical and local content is sample material; production health-related launch requires qualified review.
 
 ## Product
 
