@@ -9,6 +9,12 @@ The supplied Parenthood MVP build brief and the user's subsequent product direct
 
 **How to apply:** Keep private adult reproductive/wellbeing data separate from shared baby care. Support single parents without requiring a partner. Preserve history through user-confirmed transitions. Never claim calendar synchronization, clinical review, notification delivery, or emergency response that has not happened. Credential-unavailable manual scheduling/calendar export is allowed, but is not completed two-way synchronization.
 
+For the MVP demo, the user explicitly requested a simulated Google Calendar connection and a fictional appointment labelled “Synced from your calendar.”
+
+**Why:** The user said the connection does not have to be real for the demo.
+
+**How to apply:** Clearly label the connection and imported appointment as demo/simulated. Do not imply Google authentication, access to real calendar data, or working background synchronization.
+
 Kinwell is as much reassurance and anticipatory guidance as coordination: “First time parents not knowing what might be happening in the future/ what might be happening now/ what to plan for/ and prepare for that/ coordinate.”
 
 **Why:** The user explicitly said the app felt primarily like a coordination app and asked to make stage-relevant, expandable “what might be happening” cards the priority.

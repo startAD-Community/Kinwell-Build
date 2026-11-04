@@ -13,7 +13,7 @@ This maps section 8 of the supplied brief to runnable screens. A checked softwar
 | 8.7 Feeding/solids | Care and Log: nursing/bottle/pump records with units; feeding preferences; foods offered and observed reactions; sample solids education |
 | 8.8 Everyday care | Care timeline, optional diaper logging, sample text demonstrations/transcripts, play and development library, milestones |
 | 8.9 What works profile | Care → Baby: editable family settling/feeding/comfort preferences with author/update times |
-| 8.10 Appointments/Calendar | Plan → Appointments: create/edit/cancel, timezone, participants; discreet downloadable ICS. Google two-way sync is **not connected/implemented** |
+| 8.10 Appointments/Calendar | Plan → Appointments: create/edit/cancel, timezone, participants; discreet downloadable ICS. Explicit demo Google connection adds one private fictional appointment, repeat sync without duplicates, persistent status and disconnect. Real Google two-way sync is **not connected/implemented** |
 | 8.11 Questions/follow-through | Plan: suggested/typed/optional browser-voice questions, appointment agenda, selected-record visit export, visit notes and next steps → task/follow-up |
 | 8.12 Medication | Care: recorded clinician instructions, administrations given/skipped/unknown, duplicate warning requiring confirmation, correction history; no dose calculation |
 | 8.13 Health/documents | Plan: authenticated/scoped private App Storage uploads (PDF/image/text), label, replace, delete, view/download; no EHR/official-record verification |

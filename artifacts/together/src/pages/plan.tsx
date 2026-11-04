@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useLocation, useSearch } from "wouter";
-import { CalendarX2, Download, FileText, Pencil, Plus, RefreshCw, Trash2, Upload, Check } from "lucide-react";
+import { Download, FileText, Pencil, Plus, RefreshCw, Trash2, Upload, Check } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetBootstrapQueryKey, type Bootstrap } from "@workspace/api-client-react";
@@ -10,6 +10,7 @@ import { fmtDate, fmtTime } from "@/lib/format";
 import { CHECKLISTS, QUESTION_CHIPS, PROTOTYPE_LOCALE } from "@/lib/content";
 import { Btn, Chip, Surface, Tag, SectionTitle, Empty, KindSection, ChecklistCard, Confirm, RecordDialog, Meta, ScopeTag, VoiceButton, inputCls, type Field } from "@/components/kit";
 import { describe } from "./care";
+import { CalendarDemoPanel, DemoSyncedNote, isDemoSynced } from "@/components/calendar-demo";
 import { cn } from "@/lib/utils";
 
 const TABS = [["appointments", "Appointments"], ["questions", "Questions"], ["documents", "Documents"], ["contacts", "Contacts"], ["admin", "Admin timeline"]] as const;
@@ -64,13 +65,7 @@ function Appointments({ focus }: { focus: string | null }) {
   const past = all.filter((a) => +new Date(when(a)) <= Date.now() - 36e5);
   return (
     <>
-      <Surface tone="sky" className="mb-6">
-        <div className="flex items-start gap-3"><CalendarX2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden /><div>
-          <p className="font-semibold">Google Calendar: not connected</p>
-          <p className="mt-0.5 text-sm">Two-way sync isn't available in this prototype (status: {boot.calendarStatus}). Schedule here and download calendar files instead — they won't update automatically.</p>
-          <Btn size="sm" variant="outline" className="mt-2" disabled aria-disabled>Connect Google Calendar — not available yet</Btn>
-        </div></div>
-      </Surface>
+      <CalendarDemoPanel />
       <SectionTitle title="Upcoming" action={<Btn size="sm" onClick={() => setEdit("new")} data-testid="button-add-appointment"><Plus className="h-4 w-4" />Add</Btn>} />
       {upcoming.length === 0 ? <Empty title="No appointments coming up" action={<Btn size="sm" onClick={() => setEdit("new")}>Add one</Btn>} /> : (
         <ul className="space-y-3">{upcoming.map((a) => <li key={a.id}><ApptCard a={a} onEdit={() => setEdit(a)} open={focus === a.id} /></li>)}</ul>
@@ -151,6 +146,7 @@ function ApptCard({ a, onEdit, open, past }: { a: Rec; onEdit: () => void; open?
         <div>
           <div className="flex flex-wrap items-center gap-2"><p className="font-display text-xl">{a.title}</p>{cancelled && <Tag tone="warn">Cancelled</Tag>}<ScopeTag scope={a.scope} /></div>
           <p className="text-[15px]">{fmtTime(when(a), tz)}{ds(a, "endAt") && ` – ${new Date(ds(a, "endAt")).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", timeZone: tz || undefined })}`} <span className="text-xs text-muted-foreground">({tz})</span></p>
+          {isDemoSynced(a) && <DemoSyncedNote a={a} />}
           <p className="text-sm text-muted-foreground">{[ds(a, "location"), ds(a, "clinician"), (dget<string[]>(a, "participants") || []).length ? `With ${(dget<string[]>(a, "participants") || []).join(", ")}` : ""].filter(Boolean).join(" · ")}</p>
         </div>
         <button type="button" onClick={onEdit} aria-label={`Edit ${a.title}`} className="press flex h-11 w-11 items-center justify-center rounded-xl hover:bg-muted"><Pencil className="h-4 w-4" /></button>

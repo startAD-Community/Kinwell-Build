@@ -33,7 +33,7 @@ If the original administrator is unavailable, recovery is an operator-controlled
 
 ### Google Calendar
 
-The application explicitly reports **disconnected** and provides manual scheduling plus `.ics` downloads. This is a supported credential-unavailable fallback, not two-way synchronization.
+Real Google Calendar access remains **disconnected**, with manual scheduling and `.ics` downloads. Plan → Appointments also offers an explicitly simulated demo connection: it saves one private fictional appointment, shows “Synced from your calendar” alongside a Demo label, and supports repeat demo sync and disconnect. Connection state persists per user; disconnect retains the sample. No Google authentication, real-calendar access or background synchronization occurs.
 
 Before enabling two-way sync, provision per-user Google OAuth, select a calendar with consent, keep refresh tokens server-side, persist stable event mappings and sync cursors, implement retries and conflict handling, and test Google-side changes. Do not connect one builder's personal calendar to all app users.
 
