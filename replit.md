@@ -1,6 +1,6 @@
-# Together — Parenthood MVP
+# Kinwell — Parenthood MVP
 
-A private companion for first-time parents and their support circle across preparation, pregnancy, and the first year. “Together” is a working name.
+A reassuring companion for first-time parents across preparation, pregnancy, and the first year. Help people understand what might be happening now or soon, prepare, and then coordinate care. Shared coordination supports this purpose; it is not the primary product.
 
 ## Run & Operate
 

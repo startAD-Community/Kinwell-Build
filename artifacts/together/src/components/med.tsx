@@ -46,7 +46,7 @@ export function useAdministration() {
       body={
         <div className="space-y-2">
           <p>{last ? <>A dose of <strong>{pending?.m.title}</strong> was recorded as given {ago(when(last))} by {last.authorName}.</> : <>A recent dose of {pending?.m.title} was already recorded.</>}</p>
-          <p>Together can't know whether a dose was actually taken — only what was recorded, and other people's records may not have reached this device yet. Check with anyone else caring before giving more. Follow the clinician's instructions.</p>
+          <p>Kinwell can't know whether a dose was actually taken — only what was recorded, and other people's records may not have reached this device yet. Check with anyone else caring before giving more. Follow the clinician's instructions.</p>
         </div>
       }
       onConfirm={() => { if (pending) send(pending.m, pending.result, pending.at, true).catch(() => undefined); setPending(null); }}

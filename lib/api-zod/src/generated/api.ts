@@ -14,6 +14,8 @@ export const HealthCheckResponse = zod.object({
 
 export const getBootstrapResponseProfileOneFamilyRoleMax = 40;
 
+export const getBootstrapResponseProfileOnePeriodSharingMemberIdsMax = 20;
+
 export const getBootstrapResponseRecordsItemOneTitleMax = 300;
 
 export const getBootstrapResponseRecordsItemOneNotesMax = 10000;
@@ -24,6 +26,8 @@ export const GetBootstrapResponse = zod.object({
   "profile": zod.object({
   "name": zod.string().optional(),
   "familyRole": zod.string().max(getBootstrapResponseProfileOneFamilyRoleMax).optional(),
+  "periodSharingMemberIds": zod.array(zod.string()).max(getBootstrapResponseProfileOnePeriodSharingMemberIdsMax).optional(),
+  "confirmPeriodSharing": zod.boolean().optional(),
   "avatar": zod.enum(['bunny', 'bear', 'fox', 'cat', 'panda', 'koala', 'owl', 'penguin']).optional(),
   "avatarColor": zod.enum(['sage', 'peach', 'sky', 'lavender', 'butter']).optional(),
   "stage": zod.enum(['preconception', 'pregnancy', 'postpartum', 'paused']).optional(),
@@ -67,6 +71,7 @@ export const GetBootstrapResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "familyRole": zod.string().optional(),
+  "canSeeYourPeriods": zod.boolean().optional(),
   "avatar": zod.string().optional(),
   "avatarColor": zod.string().optional(),
   "role": zod.string(),
@@ -86,6 +91,8 @@ export const StartDemoBody = zod.object({
 
 export const startDemoResponseProfileOneFamilyRoleMax = 40;
 
+export const startDemoResponseProfileOnePeriodSharingMemberIdsMax = 20;
+
 export const startDemoResponseRecordsItemOneTitleMax = 300;
 
 export const startDemoResponseRecordsItemOneNotesMax = 10000;
@@ -96,6 +103,8 @@ export const StartDemoResponse = zod.object({
   "profile": zod.object({
   "name": zod.string().optional(),
   "familyRole": zod.string().max(startDemoResponseProfileOneFamilyRoleMax).optional(),
+  "periodSharingMemberIds": zod.array(zod.string()).max(startDemoResponseProfileOnePeriodSharingMemberIdsMax).optional(),
+  "confirmPeriodSharing": zod.boolean().optional(),
   "avatar": zod.enum(['bunny', 'bear', 'fox', 'cat', 'panda', 'koala', 'owl', 'penguin']).optional(),
   "avatarColor": zod.enum(['sage', 'peach', 'sky', 'lavender', 'butter']).optional(),
   "stage": zod.enum(['preconception', 'pregnancy', 'postpartum', 'paused']).optional(),
@@ -139,6 +148,7 @@ export const StartDemoResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "familyRole": zod.string().optional(),
+  "canSeeYourPeriods": zod.boolean().optional(),
   "avatar": zod.string().optional(),
   "avatarColor": zod.string().optional(),
   "role": zod.string(),
@@ -157,6 +167,8 @@ export const SwitchDemoPersonaBody = zod.object({
 
 export const switchDemoPersonaResponseProfileOneFamilyRoleMax = 40;
 
+export const switchDemoPersonaResponseProfileOnePeriodSharingMemberIdsMax = 20;
+
 export const switchDemoPersonaResponseRecordsItemOneTitleMax = 300;
 
 export const switchDemoPersonaResponseRecordsItemOneNotesMax = 10000;
@@ -167,6 +179,8 @@ export const SwitchDemoPersonaResponse = zod.object({
   "profile": zod.object({
   "name": zod.string().optional(),
   "familyRole": zod.string().max(switchDemoPersonaResponseProfileOneFamilyRoleMax).optional(),
+  "periodSharingMemberIds": zod.array(zod.string()).max(switchDemoPersonaResponseProfileOnePeriodSharingMemberIdsMax).optional(),
+  "confirmPeriodSharing": zod.boolean().optional(),
   "avatar": zod.enum(['bunny', 'bear', 'fox', 'cat', 'panda', 'koala', 'owl', 'penguin']).optional(),
   "avatarColor": zod.enum(['sage', 'peach', 'sky', 'lavender', 'butter']).optional(),
   "stage": zod.enum(['preconception', 'pregnancy', 'postpartum', 'paused']).optional(),
@@ -210,6 +224,7 @@ export const SwitchDemoPersonaResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "familyRole": zod.string().optional(),
+  "canSeeYourPeriods": zod.boolean().optional(),
   "avatar": zod.string().optional(),
   "avatarColor": zod.string().optional(),
   "role": zod.string(),
@@ -222,13 +237,35 @@ export const SwitchDemoPersonaResponse = zod.object({
 })
 
 
+export const importCyclesBodyEntriesMax = 500;
+
+
+
+export const ImportCyclesBody = zod.object({
+  "confirmed": zod.boolean(),
+  "entries": zod.array(zod.object({
+  "startDate": zod.string(),
+  "endDate": zod.string().optional()
+})).min(1).max(importCyclesBodyEntriesMax)
+})
+
+export const ImportCyclesResponse = zod.object({
+  "imported": zod.number().int(),
+  "skipped": zod.number().int()
+})
+
+
 export const updateProfileBodyFamilyRoleMax = 40;
+
+export const updateProfileBodyPeriodSharingMemberIdsMax = 20;
 
 
 
 export const UpdateProfileBody = zod.object({
   "name": zod.string().optional(),
   "familyRole": zod.string().max(updateProfileBodyFamilyRoleMax).optional(),
+  "periodSharingMemberIds": zod.array(zod.string()).max(updateProfileBodyPeriodSharingMemberIdsMax).optional(),
+  "confirmPeriodSharing": zod.boolean().optional(),
   "avatar": zod.enum(['bunny', 'bear', 'fox', 'cat', 'panda', 'koala', 'owl', 'penguin']).optional(),
   "avatarColor": zod.enum(['sage', 'peach', 'sky', 'lavender', 'butter']).optional(),
   "stage": zod.enum(['preconception', 'pregnancy', 'postpartum', 'paused']).optional(),
@@ -250,6 +287,8 @@ export const UpdateProfileBody = zod.object({
 
 export const updateProfileResponseProfileOneFamilyRoleMax = 40;
 
+export const updateProfileResponseProfileOnePeriodSharingMemberIdsMax = 20;
+
 export const updateProfileResponseRecordsItemOneTitleMax = 300;
 
 export const updateProfileResponseRecordsItemOneNotesMax = 10000;
@@ -260,6 +299,8 @@ export const UpdateProfileResponse = zod.object({
   "profile": zod.object({
   "name": zod.string().optional(),
   "familyRole": zod.string().max(updateProfileResponseProfileOneFamilyRoleMax).optional(),
+  "periodSharingMemberIds": zod.array(zod.string()).max(updateProfileResponseProfileOnePeriodSharingMemberIdsMax).optional(),
+  "confirmPeriodSharing": zod.boolean().optional(),
   "avatar": zod.enum(['bunny', 'bear', 'fox', 'cat', 'panda', 'koala', 'owl', 'penguin']).optional(),
   "avatarColor": zod.enum(['sage', 'peach', 'sky', 'lavender', 'butter']).optional(),
   "stage": zod.enum(['preconception', 'pregnancy', 'postpartum', 'paused']).optional(),
@@ -303,6 +344,7 @@ export const UpdateProfileResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "familyRole": zod.string().optional(),
+  "canSeeYourPeriods": zod.boolean().optional(),
   "avatar": zod.string().optional(),
   "avatarColor": zod.string().optional(),
   "role": zod.string(),

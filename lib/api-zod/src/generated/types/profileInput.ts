@@ -12,6 +12,9 @@ export interface ProfileInput {
   name?: string;
   /** @maxLength 40 */
   familyRole?: string;
+  /** @maxItems 20 */
+  periodSharingMemberIds?: string[];
+  confirmPeriodSharing?: boolean;
   avatar?: ProfileInputAvatar;
   avatarColor?: ProfileInputAvatarColor;
   stage?: ProfileInputStage;

@@ -1,10 +1,10 @@
-# Together — development setup and readiness
+# Kinwell — development setup and readiness
 
-Together is a configurable working name, not a cleared final brand.
+Kinwell is the user-selected product name. The existing artifact directory, API paths, database table names and session keys are retained for compatibility.
 
 ## Run
 
-Use the existing API Server and Together web workflows. The application uses React/Vite, Express, Clerk, PostgreSQL/Drizzle, and private App Storage. It does not require an AI service or a payment account.
+Use the existing API Server and web workflows (the web workflow retains the directory name `artifacts/together`). The application uses React/Vite, Express, Clerk, PostgreSQL/Drizzle, and private App Storage. It does not require an AI service or a payment account.
 
 1. Install dependencies with `pnpm install`.
 2. Provision Clerk and App Storage using the platform's setup tools. These are already configured in this development environment.
@@ -19,7 +19,9 @@ Real accounts authenticate through Clerk and receive their own empty household w
 
 ## Permissions and administration
 
-Memberships are checked on each API request, including expiry and revocation. Baby-care, routines, shifts, tasks, appointments, medication, contacts and documents have explicit grants. Personal cycle history, symptoms and check-ins remain author-private, even from household administrators. Limited help links expose only the selected practical request.
+Memberships are checked on each API request, including expiry and revocation. Baby-care, routines, care time, tasks, appointments, medication, contacts and documents have explicit grants. Symptoms and check-ins remain author-private, even from household administrators. Period history is private by default; only its author may explicitly share existing and future dates with selected active family members. Recipients have read-only access, never receive this access merely by becoming an administrator, and lose server access when sharing is revoked. Previously downloaded copies cannot be recalled. Limited help links expose only the selected practical request.
+
+Period import uses a user-requested Flo JSON export (or mapped CSV), reviewed locally in the browser. Only selected normalized period dates go to the API; the raw export is not stored. Flo does not publish a guaranteed JSON export schema; the importer needs explicit field mapping when the format differs. It is a one-time import, not a Flo account connection or live synchronization. Official export instructions: https://help.flo.health/hc/en-us/articles/360054973811-How-do-I-get-a-copy-of-my-data
 
 Caregiver invitations require authentication and acceptance; links for limited practical help can be claimed without unrelated onboarding. There is no email/SMS delivery provider: users deliberately copy a secure invitation link.
 

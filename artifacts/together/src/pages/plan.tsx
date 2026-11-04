@@ -337,8 +337,8 @@ function Contacts() {
   return (
     <KindSection title="Contacts" sub="Clinicians, childcare and people to call. Numbers are shown exactly as you enter them — we don't verify them." kind="contact" scope="household"
       empty="No contacts yet" emptyBody="Add your midwife, GP, health visitor, nursery or a trusted neighbour. They appear in Get help."
-      fields={[{ key: "title", label: "Name", required: true }, { key: "data.role", label: "Role", placeholder: "Midwife, GP, nursery" }, { key: "data.phone", label: "Phone" }, { key: "data.hours", label: "When to call", placeholder: "Weekdays 9–5" }, { key: "data.authorised", label: "Authorised to collect baby?", type: "toggle" }, { key: "notes", label: "Notes", type: "textarea" }]}
-      line={(r) => <>{ds(r, "role")}{ds(r, "phone") && <> · <a className="underline" href={`tel:${ds(r, "phone")}`}>{ds(r, "phone")}</a></>}{ds(r, "hours") && ` · ${ds(r, "hours")}`}{!!dget(r, "authorised") && <Tag tone="sage" className="ml-2">Authorised for pick-up</Tag>}</>} />
+      fields={[{ key: "title", label: "Name", required: true }, { key: "data.role", label: "Role", placeholder: "Midwife, GP, nursery" }, { key: "data.phone", label: "Phone" }, { key: "data.hours", label: "When to call", placeholder: "Weekdays 9–5" }, { key: "data.authorised", label: "Can collect baby? (family-recorded)", type: "toggle", hint: "A note for your family only — not legal proof. Nurseries and schools use their own authorisation process." }, { key: "notes", label: "Notes", type: "textarea" }]}
+      line={(r) => <>{ds(r, "role")}{ds(r, "phone") && <> · <a className="underline" href={`tel:${ds(r, "phone")}`}>{ds(r, "phone")}</a></>}{ds(r, "hours") && ` · ${ds(r, "hours")}`}{dget(r, "authorised") === true && <Tag tone="sage" className="ml-2">Family-recorded: can collect</Tag>}{dget(r, "authorised") === false && <Tag className="ml-2">Family-recorded: not to collect</Tag>}</>} />
   );
 }
 

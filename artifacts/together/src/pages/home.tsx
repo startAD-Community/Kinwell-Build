@@ -4,10 +4,12 @@ import { X, Bookmark, BookmarkCheck, ArrowRight, Plus, LifeBuoy, Check, Calendar
 import { toast } from "@/hooks/use-toast";
 import { useBoot } from "@/lib/boot";
 import { useRecords, byKind, ds, dget, when, type Rec } from "@/lib/api";
-import { ago, babyAge, fmtClock, fmtDate, fmtTime, greeting, pregnancyWeek } from "@/lib/format";
+import { ago, fmtClock, fmtDate, fmtTime, greeting, pregnancyWeek } from "@/lib/format";
 import { LIBRARY, PLAY_IDEAS, PRIORITY_SUGGESTIONS, CONTENT_STATUS, type Stage } from "@/lib/content";
-import { Btn, Chip, Surface, Tag, SectionTitle, inputCls } from "@/components/kit";
+import { Btn, Chip, Surface, Tag, SectionTitle, inputCls, TONES } from "@/components/kit";
 import { openHelp, openLog } from "@/components/shell";
+import { InsightCards } from "@/components/insights";
+import { useChild } from "@/lib/child";
 import { cn } from "@/lib/utils";
 
 type Card = { key: string; tone?: "peach" | "sky" | "sage" | "sand"; eyebrow: string; title: string; body?: ReactNode; why?: string; action?: { label: string; href?: string; onClick?: () => void }; custom?: ReactNode; saveable?: boolean };
@@ -35,19 +37,18 @@ export default function HomePage({ intro }: { intro?: boolean }) {
   const lastFeed = byKind(R, "feed")[0];
   const help = byKind(R, "help").find((h) => h.status === "claimed");
   const week = pregnancyWeek(p.dueDate);
-  const age = babyAge(p.birthDate);
-  const child = p.childName || "your baby";
+  const kid = useChild();
+  const age = kid.age;
 
   const cards: Card[] = useMemo(() => {
     const c: Card[] = [];
-    if (stage === "pregnancy") c.push({ key: `week-${week}`, tone: "sky", eyebrow: "This week", title: week ? `You're at week ${week}. Here's what's changing.` : "Here's what's changing in pregnancy.", why: week ? "Because of your due date" : "Add a due date for week-by-week detail", action: { label: "Take a look", href: "/care?tab=baby" }, saveable: true });
-    if (stage === "postpartum") c.push({ key: `age-${age?.weeks}`, tone: "sky", eyebrow: "What's changing", title: age ? `${child} is ${age.label}. Here's what's changing this week.` : `What's changing for ${child} this week.`, why: "Because of the birth date you entered", action: { label: "Take a look", href: "/care?tab=baby" }, saveable: true });
-    if (stage === "preconception") c.push({ key: "prep", tone: "sage", eyebrow: "Getting ready", title: "A short list for preparing, at your own pace.", why: "Because you're preparing", action: { label: "Open the list", href: "/care?tab=you" } });
-    if (stage === "paused") c.push({ key: "paused", tone: "sand", eyebrow: "Taking time", title: "We've paused pregnancy updates. Take whatever time you need.", body: "Your plans, contacts and circle are still here. Nothing celebratory will be shown.", action: { label: "Support options", href: "/care?tab=you" } });
+    if (stage === "pregnancy" && !week) c.push({ key: "week-none", tone: "sky", eyebrow: "This week", title: "Add a due date for week-by-week detail.", action: { label: "Open Settings", href: "/settings" } });
+    if (stage === "preconception") c.push({ key: "prep", tone: "sage", eyebrow: "Getting ready", title: "A short list for preparing, at your own pace.", why: "Because you're preparing", action: { label: "Open the list", href: "/care?tab=you&topic=body" } });
+    if (stage === "paused") c.push({ key: "paused", tone: "sand", eyebrow: "Taking time", title: "We've paused pregnancy updates. Take whatever time you need.", body: "Your plans, contacts and circle are still here. Nothing celebratory will be shown.", action: { label: "Support options", href: "/care?tab=you&topic=body" } });
     if (nextAppt) c.push({ key: `appt-${nextAppt.id}`, tone: "peach", eyebrow: "Appointment", title: `Your appointment is ${new Date(when(nextAppt)).toLocaleDateString(undefined, { weekday: "long", timeZone: tz || undefined })}. Anything you want to ask?`, body: `${nextAppt.title} · ${fmtTime(when(nextAppt), tz)}`, why: "Because your appointment is coming up", action: { label: "Choose questions", href: `/plan?tab=appointments&appt=${nextAppt.id}` } });
     if (next) c.push({ key: `shift-${next.id}-${next.status}`, eyebrow: "Your circle", title: `${ds(next, "assignee") || next.authorName} has taken ${next.title.toLowerCase()}.`, body: `${fmtTime(ds(next, "startAt"), tz)} – ${fmtClock(ds(next, "endAt"), tz)}`, action: { label: "View plan", href: "/together?tab=shifts" } });
     if (stage !== "paused") c.push({ key: `needs-${new Date().toDateString()}`, tone: "sage", eyebrow: "A quick check-in?", title: "What would help today?", custom: <NeedChips /> });
-    if (lastFeed && stage === "postpartum") c.push({ key: `feed-${lastFeed.id}`, eyebrow: "Care", title: `Last feed recorded at ${fmtClock(when(lastFeed), tz)} by ${lastFeed.authorName}.`, body: ago(when(lastFeed)), action: { label: "View care history", href: "/care?tab=baby#timeline" } });
+    if (lastFeed && stage === "postpartum") c.push({ key: `feed-${lastFeed.id}`, eyebrow: "Care", title: `Last feed recorded at ${fmtClock(when(lastFeed), tz)} by ${lastFeed.authorName}.`, body: ago(when(lastFeed)), action: { label: "View care history", href: "/care?tab=baby&topic=everyday#timeline" } });
     if (help) c.push({ key: `help-${help.id}-claimed`, tone: "peach", eyebrow: "Help request", title: `${ds(help, "claimedBy") || "Someone"} has claimed "${help.title}".`, body: "Claimed isn't done yet — it'll show as complete when they mark it.", action: { label: "View request", href: "/together?tab=help" } });
     if (stage === "postpartum" && (age?.months ?? 0) >= 1) {
       const idea = PLAY_IDEAS[new Date().getDate() % PLAY_IDEAS.length];
@@ -57,7 +58,7 @@ export default function HomePage({ intro }: { intro?: boolean }) {
     content.slice(0, 3).forEach((x) => c.push({ key: `content-${x.id}`, eyebrow: x.topic, title: x.title, body: <>{x.summary} <Tag tone="warn" className="ml-1">Sample</Tag></>, action: { label: "Read", href: `/care?tab=${["recovery", "nutrition", "movement", "preparation"].includes(x.topic) ? "you" : "baby"}&read=${x.id}` }, saveable: true }));
     return c.filter((x) => !dismissed.has(x.key));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [R, stage, p.dueDate, p.birthDate]);
+  }, [R, stage, p.dueDate, age?.months]);
 
   const shown = cards.slice(0, more ? 8 : 5);
 
@@ -78,6 +79,8 @@ export default function HomePage({ intro }: { intro?: boolean }) {
           {p.lowEnergy ? "Just the essentials." : stage === "postpartum" ? "Here's today, gently." : stage === "pregnancy" ? "Here's what's next." : stage === "paused" ? "We're here when you need us." : "One step at a time."}
         </h1>
       </section>
+
+      {!p.lowEnergy && <InsightCards />}
 
       <NowNext current={current} next={next} />
 
@@ -245,9 +248,9 @@ function Priorities({ stage }: { stage: Stage }) {
     <section className="mt-10" aria-labelledby="prio">
       <SectionTitle id="prio" title="This week" sub="A few priorities. Edit freely — none are required." />
       <ul className="space-y-2.5">
-        {active.map((t) => (
+        {active.map((t, i) => (
           <li key={t.id}>
-            <Surface className="p-4">
+            <Surface className="p-4" tone={TONES[i % TONES.length]}>
               <div className="flex items-start gap-3">
                 <button type="button" role="checkbox" aria-checked={false} aria-label={`Mark ${t.title} done`} onClick={() => update.mutate({ id: t.id, data: { status: "done" } })}
                   className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-input" data-testid={`prio-done-${t.id}`} />
@@ -255,7 +258,7 @@ function Priorities({ stage }: { stage: Stage }) {
                   <p className="font-semibold">{t.title}</p>
                   <p className="text-xs text-muted-foreground">
                     {ds(t, "why") && <>{ds(t, "why")} · </>}
-                    {ds(t, "assignee") ? <><UserRound className="inline h-3 w-3" /> {ds(t, "assignee")}</> : "Unassigned"}
+                    {ds(t, "assignee") ? <><UserRound className="inline h-3 w-3" /> Responsible: {ds(t, "assignee")}</> : "Nobody responsible yet"} · {t.scope === "private" ? "Only you can see" : "Whole circle can see"}
                     {ds(t, "dueDate") && <> · <CalendarClock className="inline h-3 w-3" /> {fmtDate(ds(t, "dueDate"))}</>}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1.5">

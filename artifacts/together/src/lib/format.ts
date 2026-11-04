@@ -1,4 +1,4 @@
-import { differenceInCalendarDays, differenceInMinutes, formatDistanceToNowStrict } from "date-fns";
+import { differenceInCalendarDays, differenceInMonths, differenceInMinutes, formatDistanceToNowStrict } from "date-fns";
 
 export function fmtTime(iso?: string | null, tz?: string | null) {
   if (!iso) return "No time recorded";
@@ -52,10 +52,14 @@ export function pregnancyWeek(dueDate?: string | null) {
 }
 export function babyAge(birthDate?: string | null) {
   if (!birthDate) return null;
-  const days = differenceInCalendarDays(new Date(), new Date(birthDate + (birthDate.length === 10 ? "T12:00:00" : "")));
+  const birth = new Date(birthDate + (birthDate.length === 10 ? "T12:00:00" : ""));
+  if (!Number.isFinite(birth.getTime())) return null;
+  const now = new Date();
+  now.setHours(12, 0, 0, 0);
+  const days = differenceInCalendarDays(now, birth);
   if (days < 0) return null;
   const weeks = Math.floor(days / 7);
-  const months = Math.floor(days / 30.44);
+  const months = differenceInMonths(now, birth);
   return { days, weeks, months, label: days < 14 ? `${days} days old` : weeks < 13 ? `${weeks} weeks old` : `${months} months old` };
 }
 export function minutesLabel(min?: number | string | null) {

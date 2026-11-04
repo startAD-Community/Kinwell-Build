@@ -135,7 +135,7 @@ export function OfflineEssentials() {
   };
   return (
     <section className="mb-8" id="offline">
-      <SectionTitle title="Kept on this device" sub="For a weak signal. A snapshot — not live, and never a substitute for checking with others." />
+      <SectionTitle title="Kept on this device" sub="A Kinwell snapshot for a weak signal. A snapshot — not live, and never a substitute for checking with others." />
       <Surface tone="sand">
         <div className="flex flex-wrap gap-2">
           {[["works", "What works"], ["contacts", "Contacts"], ["meds", "Medication"], ["latest", "Latest care"]].map(([k, l]) => (

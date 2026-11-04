@@ -11,9 +11,11 @@ import type { ProfileInput, ProfileInputStage } from "@workspace/api-client-reac
 import { Btn, Chip, Surface, Tag, SectionTitle, Confirm, inputCls } from "@/components/kit";
 import { Logo } from "@/components/shell";
 import { cn } from "@/lib/utils";
+import { BabyEditor } from "@/components/baby-editor";
 import { ProfileEditor, FamilyRolePicker, type Identity } from "@/components/profile-editor";
 import { AnimalAvatar, ANIMALS, AVATAR_COLORS, permissionLabel, type Animal, type AvatarColor } from "@/components/avatar";
 
+const byChild = (r: { kind: string }[]) => r.some((x) => x.kind === "child");
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 const COUNTRIES = ["United Kingdom", "Ireland", "United States", "Canada", "Australia", "New Zealand", "Other"];
 const tzList = (): string[] => { try { return (Intl as unknown as { supportedValuesOf: (k: string) => string[] }).supportedValuesOf("timeZone"); } catch { return [Intl.DateTimeFormat().resolvedOptions().timeZone]; } };
@@ -35,7 +37,7 @@ export function Onboarding() {
   const steps = [
     <div key="w"><h2 className="font-display text-3xl">Where are you right now?</h2><p className="mt-1 text-muted-foreground">You can change this any time.</p>
       <div className="mt-5 grid gap-2">{([["preparing", "Getting ready to try"], ["pregnant", "Pregnant, or my partner is"], ["parent", "Our baby is here"], ["supporter", "I'm helping someone else"]] as const).map(([k, l]) => <button key={k} type="button" onClick={() => setWho(k)} className={cn("press min-h-14 rounded-2xl border px-4 text-left text-[17px] font-semibold", who === k ? "border-primary bg-sage" : "border-input bg-card")}>{l}</button>)}</div>
-      {who === "supporter" && <p className="mt-4 rounded-xl bg-sky p-3 text-sm text-accent-foreground">Supporters join through an invitation link from the family. Ask them to send you one from Together, Circle. You can also continue to set up your own family.</p>}
+      {who === "supporter" && <p className="mt-4 rounded-xl bg-sky p-3 text-sm text-accent-foreground">Supporters join through an invitation link from the family. Ask them to send you one from Circle. You can also continue to set up your own family.</p>}
     </div>,
     <div key="d" className="space-y-4"><h2 className="font-display text-3xl">A few details</h2>
       <L label="Your name"><input className={inputCls} value={f.name || ""} onChange={(e) => setF({ ...f, name: e.target.value })} /></L>
@@ -62,7 +64,7 @@ export function Onboarding() {
         <div className="mt-8 flex justify-between gap-2">
           {step > 0 ? <Btn variant="ghost" onClick={() => setStep(step - 1)}>Back</Btn> : <span />}
           {step < 2 ? <Btn size="lg" disabled={!who} onClick={() => setStep(step + 1)} data-testid="button-onboarding-next">Continue</Btn>
-            : <Btn size="lg" disabled={save.isPending} onClick={finish} data-testid="button-onboarding-finish">{save.isPending ? "Saving…" : "Start using Together"}</Btn>}
+            : <Btn size="lg" disabled={save.isPending} onClick={finish} data-testid="button-onboarding-finish">{save.isPending ? "Saving…" : "Start using Kinwell"}</Btn>}
         </div>
       </div>
     </div>
@@ -120,6 +122,8 @@ export default function SettingsPage() {
         </Surface>
       </section>
 
+      {(p.stage === "postpartum" || byChild(boot.records)) && <BabyEditor />}
+
       <section><SectionTitle title="Preferences" />
         <Surface className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -166,7 +170,7 @@ export default function SettingsPage() {
 
       <section><SectionTitle title="Privacy" />
         <Surface className="space-y-3 text-[15px]">
-          <p>Private records (check-ins, cycle, symptoms, private documents and appointments) are visible only to you. Supporters see only what's granted.</p>
+          <p>Private records (check-ins, symptoms, private documents and appointments) are visible only to you. Your period dates are private unless you share them read-only in Care › You › Periods. Supporters see only what's granted.</p>
           <ul className="space-y-1">{boot.members.filter((m) => m.id !== p.memberId).map((m) => <li key={m.id} className="text-sm"><strong>{m.name}</strong> <Tag>{m.status}</Tag> — {m.grants.length ? m.grants.map((g) => GRANTS.find((x) => x.key === g)?.label || g).join(", ") : m.role.includes("admin") ? "administrator" : "nothing"}</li>)}</ul>
           <div className="flex flex-wrap gap-2">
             {isAdmin && <Btn size="sm" variant="soft" onClick={() => nav("/together?tab=circle")}>Manage access</Btn>}

@@ -69,3 +69,17 @@ Focused anonymous-demo browser verification passed:
 - Participant selection responds immediately in the appointment editor and persists after Save/reload.
 
 An initial test found a deterministic-avatar fallback crash for some member IDs. The unsigned hash-index fix and synchronous profile initialization were verified in the previously blocked profile flow. The full-product and real-account limitations above still apply.
+
+## Kinwell guidance, periods and sleep update
+
+- Full workspace typecheck passed; web typecheck passed again after final UI corrections.
+- `node scripts/src/kinwell-periods-smoke.mjs`: **21 synthetic API checks passed**. Coverage includes private defaults, forged-sharing rejection, required consent, named read-only access, revocation, import duplicates/atomic validation, check-in isolation, cross-household rejection, editable/admin-only baby birth dates, future-date rejection, saved sleep duration and younger-baby training restrictions.
+- Focused browser acceptance confirmed Kinwell branding, reassurance cards before coordination, expandable guide actions, manual period entry, actual file-chooser JSON import/mapping/preview/confirmation and persistence.
+- Browser checks confirmed existing/imported period dates appear read-only for the chosen recipient, never enter that recipient's own estimate, and disappear after revocation.
+- The completed-sleep dialog saved a 30-minute record, edited it to 35 minutes, and preserved the saved row after reload.
+- Five/six-month demo presets updated Settings/Home/Care; Feeding & solids and the food list remained available. The browser did not add a food record.
+- A previewed sleep routine, step completion and check-in saved. Initial testing found that Pause only opened reason chips; this was changed to pause immediately with an optional reason.
+- A targeted follow-up confirmed immediate pause, paused-state persistence after reload, optional reason saving, resume and active-state persistence, with the same completed-step history.
+- Explicit Yes/No collection notes saved and reopened correctly.
+- Desktop Home and 390px Home/Care screenshots were inspected; no horizontal page overflow was found.
+- Other stage variants were checked in the implementation, not exercised in this browser pass. Real signed-in multi-user and real-world Flo exports were not tested.

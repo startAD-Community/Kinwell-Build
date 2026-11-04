@@ -1,4 +1,4 @@
-# Together — frontend
+# Kinwell — frontend
 
 A quiet companion for first-time parents and their support circle. React + Vite, wouter, TanStack Query, Tailwind v4, Clerk (cookie auth).
 

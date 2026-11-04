@@ -134,7 +134,7 @@ export function downloadText(filename: string, content: string, mime = "text/pla
 export async function runExport(input: ExportInput, download = true) {
   ensureOnline();
   const res = await exportRecords(input);
-  if (download) downloadText(res.filename, res.content, res.mimeType);
+  if (download) downloadText(res.filename.replace(/^together/i, "kinwell"), res.content, res.mimeType);
   return res;
 }
 

@@ -51,6 +51,25 @@ export interface DemoInput {
   reset?: boolean;
 }
 
+export type CycleImportInputEntriesItem = {
+  startDate: string;
+  endDate?: string;
+};
+
+export interface CycleImportInput {
+  confirmed: boolean;
+  /**
+     * @minItems 1
+     * @maxItems 500
+     */
+  entries: CycleImportInputEntriesItem[];
+}
+
+export interface CycleImportResult {
+  imported: number;
+  skipped: number;
+}
+
 export type ProfileInputAvatar = typeof ProfileInputAvatar[keyof typeof ProfileInputAvatar];
 
 
@@ -90,6 +109,9 @@ export interface ProfileInput {
   name?: string;
   /** @maxLength 40 */
   familyRole?: string;
+  /** @maxItems 20 */
+  periodSharingMemberIds?: string[];
+  confirmPeriodSharing?: boolean;
   avatar?: ProfileInputAvatar;
   avatarColor?: ProfileInputAvatarColor;
   stage?: ProfileInputStage;
@@ -206,6 +228,7 @@ export interface Member {
   id: string;
   name: string;
   familyRole?: string;
+  canSeeYourPeriods?: boolean;
   avatar?: string;
   avatarColor?: string;
   role: string;

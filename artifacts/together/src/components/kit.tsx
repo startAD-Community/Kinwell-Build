@@ -96,9 +96,9 @@ export function Meta({ r, prefix }: { r: Rec; prefix?: string }) {
 }
 
 export function ScopeTag({ scope }: { scope?: string }) {
-  if (scope === "private") return <Tag tone="peach">Private to you</Tag>;
-  if (scope === "baby") return <Tag tone="sky">Baby · shared by grant</Tag>;
-  return <Tag tone="sage">Household</Tag>;
+  if (scope === "private") return <Tag tone="peach">Only you</Tag>;
+  if (scope === "baby") return <Tag tone="sky">People with baby access</Tag>;
+  return <Tag tone="sage">Whole circle</Tag>;
 }
 
 export function Confirm({ open, onOpenChange, title, body, confirm = "Confirm", danger, onConfirm }: { open: boolean; onOpenChange: (o: boolean) => void; title: string; body: ReactNode; confirm?: string; danger?: boolean; onConfirm: () => void }) {
@@ -173,8 +173,8 @@ function getVal(r: Rec | undefined, f: Field, defaults: Record<string, unknown>)
   return defaults[f.key];
 }
 
-export function RecordDialog({ open, onOpenChange, kind, heading, fields, record, defaults = {}, scope = "household", extraData, onSaved, deletable = true }: {
-  open: boolean; onOpenChange: (o: boolean) => void; kind: RecordInputKind; heading: string; fields: Field[]; record?: Rec; defaults?: Record<string, unknown>; scope?: RecordInputScope; extraData?: Record<string, unknown>; onSaved?: (r: Rec) => void; deletable?: boolean;
+export function RecordDialog({ open, onOpenChange, kind, heading, fields, record, defaults = {}, scope = "household", extraData, onSaved, deletable = true, validate }: {
+  open: boolean; onOpenChange: (o: boolean) => void; kind: RecordInputKind; heading: string; fields: Field[]; record?: Rec; defaults?: Record<string, unknown>; scope?: RecordInputScope; extraData?: Record<string, unknown>; onSaved?: (r: Rec) => void; deletable?: boolean; validate?: (v: Record<string, unknown>) => string | null;
 }) {
   const { create, update, remove } = useRecords();
   const { boot } = useBoot();
@@ -189,7 +189,8 @@ export function RecordDialog({ open, onOpenChange, kind, heading, fields, record
       let x = getVal(record, f, defaults);
       if (f.type === "datetime") x = toLocalInput(x as string) || (record ? "" : toLocalInput(new Date().toISOString()));
       if (f.type === "date" && typeof x === "string") x = x.slice(0, 10);
-      v[f.key] = x ?? (f.type === "members" ? [] : f.type === "toggle" ? false : "");
+      if (f.type === "toggle") x = x === true || x === "true" ? true : x === false || x === "false" ? false : null;
+      v[f.key] = x ?? (f.type === "members" ? [] : f.type === "toggle" ? null : "");
     });
     setVals(v);
     setErr(null);
@@ -200,12 +201,15 @@ export function RecordDialog({ open, onOpenChange, kind, heading, fields, record
 
   const submit = async () => {
     for (const f of fields) if (f.required && !String(vals[f.key] ?? "").trim()) return setErr(`${f.label} is needed`);
+    const bad = validate?.(vals);
+    if (bad) return setErr(bad);
     const top: Record<string, unknown> = {};
     const data: Record<string, unknown> = { ...(record?.data as Record<string, unknown> | undefined), ...extraData };
     fields.forEach((f) => {
       let x = vals[f.key];
       if (f.type === "datetime") x = fromLocalInput(String(x || ""));
       if (f.type === "number") x = x === "" || x === undefined ? undefined : Number(x);
+      if (f.type === "toggle") x = x === true ? true : x === false ? false : undefined;
       if (f.key.startsWith("data.")) data[f.key.slice(5)] = x === "" ? undefined : x;
       else if (x !== "" && x !== undefined) top[f.key] = x;
     });
@@ -282,7 +286,11 @@ export function FieldInput({ f, value, onChange, members = [] }: { f: Field; val
           {!opts.length && <span className="text-sm text-muted-foreground">No one in your circle yet.</span>}
         </div>
       ) : f.type === "toggle" ? (
-        <Chip role="switch" aria-checked={!!value} aria-pressed={undefined} aria-labelledby={`${id}-label`} active={!!value} onClick={() => onChange(!value)}>{value ? "Yes" : "No"}</Chip>
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby={`${id}-label`}>
+          <Chip role="radio" aria-checked={value === true} aria-pressed={undefined} active={value === true} onClick={() => onChange(true)} data-testid={`${id}-yes`}>Yes</Chip>
+          <Chip role="radio" aria-checked={value === false} aria-pressed={undefined} active={value === false} onClick={() => onChange(false)} data-testid={`${id}-no`}>No</Chip>
+          {value !== true && value !== false && <span className="self-center text-xs text-muted-foreground">Not recorded yet</span>}
+        </div>
       ) : (
         <input id={id} className={inputCls} placeholder={f.placeholder}
           type={f.type === "datetime" ? "datetime-local" : f.type === "date" ? "date" : f.type === "number" ? "number" : "text"}
@@ -295,6 +303,8 @@ export function FieldInput({ f, value, onChange, members = [] }: { f: Field; val
 }
 
 /* ---------- kind section ---------- */
+const COLORFUL = ["task", "shift", "appointment", "help", "question"];
+export const TONES = ["peach", "sky", "sage", "sand"] as const;
 export function KindSection({ title, sub, kind, fields, scope = "household", filter, defaults, extraData, empty, emptyBody, line, actions, addLabel = "Add", testid }: {
   title: string; sub?: string; kind: RecordInputKind; fields: Field[]; scope?: RecordInputScope; filter?: (r: Rec) => boolean; defaults?: Record<string, unknown>; extraData?: Record<string, unknown>;
   empty: string; emptyBody?: string; line?: (r: Rec) => ReactNode; actions?: (r: Rec) => ReactNode; addLabel?: string; testid?: string;
@@ -311,7 +321,7 @@ export function KindSection({ title, sub, kind, fields, scope = "household", fil
         <ul className="space-y-2.5">
           {list.map((r, i) => (
             <li key={r.id} className="rise" style={{ animationDelay: `${Math.min(i, 6) * 40}ms` }}>
-              <Surface className="p-4">
+              <Surface className="p-4" tone={COLORFUL.includes(kind) && r.status !== "done" ? TONES[i % TONES.length] : undefined}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">

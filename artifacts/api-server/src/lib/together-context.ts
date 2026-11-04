@@ -8,7 +8,7 @@ export const id = () => randomUUID();
 export const token = () => randomBytes(32).toString("hex");
 export const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 export function fail(status: number, message: string): never { throw Object.assign(new Error(message), { status }); }
-export type Context = { userId: string; householdId: string; member: MembershipRow; profile: Record<string, any>; isDemo: boolean };
+export type Context = { userId: string; householdId: string; member: MembershipRow; profile: Record<string, any>; isDemo: boolean; periodSharingAuthors: Set<string> };
 export async function audit(c: Context, action: string, resourceId?: string, previous?: unknown) {
   await db.insert(audits).values({ id: id(), householdId: c.householdId, actorId: c.userId, action, resourceId, previous });
 }
@@ -21,13 +21,17 @@ export function memberIdentity(m: MembershipRow) {
 }
 export function canRead(c: Context, r: FamilyRecordRow) {
   if (r.householdId !== c.householdId) return false;
-  if (["cycle", "checkin", "symptom"].includes(r.kind) || r.scope === "private") return r.authorId === c.userId;
+  if (r.kind === "cycle") return r.authorId === c.userId || (c.member.role !== "helper" && c.periodSharingAuthors.has(r.authorId) && Array.isArray(r.data.periodSharedWith) && r.data.periodSharedWith.includes(c.member.id));
+  if (["checkin", "symptom"].includes(r.kind) || r.scope === "private") return r.authorId === c.userId;
   if (r.kind === "transfer") return isAdmin(c) || r.data.targetMemberId === c.member.id;
   if (r.authorId === c.userId || isAdmin(c)) return true;
   const grant = r.kind === "document" ? "documents" : ["administration", "medication"].includes(r.kind) ? "medication" : ["task", "help", "checklist"].includes(r.kind) ? "tasks" : r.kind === "shift" ? "shifts" : ["appointment", "question"].includes(r.kind) ? "appointments" : r.kind === "contact" ? "contacts" : ["routine", "sleepPlan", "preference"].includes(r.kind) ? "routines" : "baby-logs";
   return c.member.grants.some(g => [grant, r.kind, "baby-care", "baby", ...(["baby-logs", "routines", "contacts"].includes(grant) ? ["care"] : [])].includes(g));
 }
-export function canWrite(c: Context, r: FamilyRecordRow) { return canRead(c, r) && c.member.role !== "helper"; }
+export function canWrite(c: Context, r: FamilyRecordRow) {
+  if (r.kind === "cycle") return r.householdId === c.householdId && r.authorId === c.userId && c.member.role !== "helper";
+  return canRead(c, r) && c.member.role !== "helper";
+}
 export async function context(req: Request): Promise<Context> {
   const authId = getAuth(req).userId;
   let userId = authId;
@@ -62,7 +66,11 @@ export async function context(req: Request): Promise<Context> {
   if (!member || (member.expiresAt && member.expiresAt < new Date())) fail(403, "Your access has expired or was revoked.");
   householdId = member.householdId;
   const [profile] = await db.select().from(profiles).where(eq(profiles.id, userId));
-  return { userId, householdId, member, profile: profile?.data ?? { name: member.name, stage: "postpartum", onboardingComplete: true }, isDemo };
+  // Re-check current author consent on each request, not only record snapshots:
+  // a concurrent save/import must not re-enable access after revocation.
+  const authors = await db.select({ userId: memberships.userId, status: memberships.status, expiresAt: memberships.expiresAt, data: profiles.data }).from(memberships).innerJoin(profiles, eq(profiles.id, memberships.userId)).where(eq(memberships.householdId, householdId));
+  const periodSharingAuthors = new Set(authors.filter(a => a.userId && a.status === "active" && (!a.expiresAt || a.expiresAt > new Date()) && Array.isArray(a.data.periodSharingMemberIds) && a.data.periodSharingMemberIds.includes(member.id)).map(a => a.userId!));
+  return { userId, householdId, member, profile: profile?.data ?? { name: member.name, stage: "postpartum", onboardingComplete: true }, isDemo, periodSharingAuthors };
 }
 export function serialize(r: FamilyRecordRow) {
   const { householdId: _h, ...record } = r;
@@ -76,7 +84,7 @@ export async function bootstrap(c: Context) {
   return {
     profile: { ...c.profile, ...memberIdentity(c.member), name: c.member.name, role: c.member.role, memberId: c.member.id, id: c.userId, householdId: c.householdId, isDemo: c.isDemo },
     records: (await visibleRecords(c)).sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime()).map(serialize),
-    members: members.map(m => ({ id: m.id, name: m.name, ...memberIdentity(m), role: m.role, status: m.expiresAt && m.expiresAt < new Date() ? "expired" : m.status, grants: m.grants, expiresAt: m.expiresAt?.toISOString() })),
+    members: members.map(m => ({ id: m.id, name: m.name, ...memberIdentity(m), canSeeYourPeriods: m.userId === c.userId || (m.role !== "helper" && m.status === "active" && (!m.expiresAt || m.expiresAt > new Date()) && Array.isArray(c.profile.periodSharingMemberIds) && c.profile.periodSharingMemberIds.includes(m.id)), role: m.role, status: m.expiresAt && m.expiresAt < new Date() ? "expired" : m.status, grants: m.grants, expiresAt: m.expiresAt?.toISOString() })),
     serverTime: new Date().toISOString(),
     calendarStatus: "disconnected",
   };

@@ -22,7 +22,7 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 const NAV = [
   { href: "/home", label: "Home", icon: Home },
   { href: "/care", label: "Care", icon: HeartHandshake },
-  { href: "/together", label: "Together", icon: Users },
+  { href: "/together", label: "Circle", icon: Users },
   { href: "/plan", label: "Plan", icon: CalendarDays },
 ];
 
@@ -30,7 +30,7 @@ export function Logo({ className }: { className?: string }) {
   return (
     <span className={cn("flex items-center gap-2", className)}>
       <img src={`${basePath}/logo.svg`} alt="" className="h-8 w-8" />
-      <span className="font-display text-xl">Together</span>
+      <span className="font-display text-xl">Kinwell</span>
     </span>
   );
 }
@@ -93,7 +93,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <div className="min-w-0 flex-1">
           <header className="sticky top-0 z-30 flex items-center justify-between gap-2 bg-background/85 px-4 py-3 backdrop-blur md:px-8">
-            <Link href="/home" className="md:hidden" aria-label="Together home"><Logo /></Link>
+            <Link href="/home" className="md:hidden" aria-label="Kinwell home"><Logo /></Link>
             <ChildPicker />
             <div className="flex items-center gap-1">
               <button type="button" onClick={() => setHelpOpen(true)} className="press flex min-h-11 items-center gap-1.5 rounded-full border border-destructive/40 px-3 text-sm font-semibold text-destructive md:hidden" data-testid="button-get-help-mobile">

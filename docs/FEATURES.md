@@ -4,12 +4,12 @@ This maps section 8 of the supplied brief to runnable screens. A checked softwar
 
 | Brief | Screens and minimum flow |
 |---|---|
-| 8.1 Weekly priorities and feed | Home: finite feed, saved/dismissed content, practical priorities with completion/assignment/rescheduling; low-energy mode |
-| 8.2 Preconception | Care → You: preparation checklists, editable/deletable cycle history, visibly uncertain calendar estimate, appointment questions and sample library |
+| 8.1 Weekly priorities and feed | Home: finite expandable “what may be happening” cards before coordination; practical optional actions, priorities and low-energy mode |
+| 8.2 Preconception | Care → You: preparation checklists, Periods & cycle available at every stage, uncertain estimates, appointment questions and sample library |
 | 8.3 Pregnancy | Pregnancy demo/onboarding; Care → You/Baby: development/body-change samples, optional symptoms, preparation, appointments and first-weeks checklist |
 | 8.4 Parent recovery/wellbeing | Care → You: private optional feeling/need check-in; needs prepare a separately confirmed help request; recovery library |
-| 8.5 Sleep support/training | Care → Baby → Sleep: readiness/preferences wizard, sample approaches, steps, manageability checks, pause/adjust/end; timer/log |
-| 8.6 Rest and care shifts | Together → Shifts: offered/accepted shifts, responsible person and times, explicit change requests; connected handover |
+| 8.5 Sleep support/training | Care → Baby → Sleep training & routines: prominent topic, eligibility/preferences wizard, previewed sample plans, current step, check-ins, pause/resume/adjust/end; editable completed-sleep dialog and saved rows |
+| 8.6 Rest and care shifts | Circle → Care time: offered/accepted care windows, responsible person and times, explicit change requests; connected handover |
 | 8.7 Feeding/solids | Care and Log: nursing/bottle/pump records with units; feeding preferences; foods offered and observed reactions; sample solids education |
 | 8.8 Everyday care | Care timeline, optional diaper logging, sample text demonstrations/transcripts, play and development library, milestones |
 | 8.9 What works profile | Care → Baby: editable family settling/feeding/comfort preferences with author/update times |
@@ -27,6 +27,10 @@ This maps section 8 of the supplied brief to runnable screens. A checked softwar
 
 - All stages can be selected; stage changes require confirmation and keep care/support history.
 - Server-enforced adult-private records remain private across caregiver access and administration transfer.
+- Period dates alone can be author-shared, after confirmation, to named read-only recipients; private check-ins and symptoms are not included. Circle explicitly reports each person's period visibility.
+- Flo export import is a one-time, locally reviewed JSON/CSV mapping. Only selected normalized dates are sent; there is no direct Flo sync or raw-export storage.
+- Selected-child birth dates are editable in Settings by family administrators; demo age presets use the same record-saving path. Age changes do not remove Solids or existing logs/plans.
+- Collection permission offers explicit Yes/No and an unrecorded state; it is a family note, not proof of legal authorization.
 - Real authentication, relational persistence, private file storage and isolated demo personas.
 - Settings: country/timezone, feeding approach, selected quick logs, quiet hours, dim/low-energy modes, device-data clear, personal-data removal.
 - Offline essentials are explicitly selected read-only cached text. Writes require connectivity. This is not a full offline PWA.

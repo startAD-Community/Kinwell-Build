@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { db, profiles, households, memberships, familyRecords, invitations } from "@workspace/db";
 import { StartDemoBody, UpdateProfileBody, CreateRecordBody, UpdateRecordBody, CreateInvitationBody, ExportRecordsBody, RequestUploadBody } from "@workspace/api-zod";
 import { context, bootstrap, id, token, hash, fail, audit, isAdmin, accessibleRecord, serialize, visibleRecords, canWrite, memberIdentity } from "../lib/together-context";
@@ -25,6 +25,33 @@ const date = (value: string) => {
 };
 const privateKinds = new Set(["cycle", "checkin", "symptom"]);
 const careKinds = new Set(["feed", "sleep", "diaper", "pumping", "food", "milestone", "preference", "routine", "sleepPlan", "child"]);
+const dateOnly = (value: unknown, label = "date") => {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(Date.parse(value)) || new Date(value).toISOString().slice(0, 10) !== value) fail(400, `Enter a valid ${label} as YYYY-MM-DD.`);
+  return value as string;
+};
+const todayFor = (timezone?: string) => new Intl.DateTimeFormat("en-CA", { timeZone: timezone || "UTC", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+function validatePeriod(data: Record<string, any>, timezone?: string) {
+  const start = dateOnly(data.startDate, "period start date");
+  if (start > todayFor(timezone)) fail(400, "A recorded period cannot start in the future.");
+  if (data.endDate) {
+    const end = dateOnly(data.endDate, "period end date");
+    if (end < start || end > todayFor(timezone)) fail(400, "The end date must be on or after the start and not in the future.");
+  }
+}
+function validateSleepPlan(data: Record<string, any>) {
+  const months = Number(data.ageMonths);
+  if (!Number.isFinite(months) || months < 0 || months > 36) fail(400, "Add a valid baby age before choosing a routine.");
+  if (data.approach && !["routine", "gradual", "checks"].includes(data.approach)) fail(400, "Choose one of the available sample approaches.");
+  if (data.approach && data.approach !== "routine" && months < 6) fail(400, "For babies under six months, choose a gentle routine rather than a training plan.");
+  data.reviewStatus = "Unreviewed prototype material — not clinical advice";
+}
+function validateSleepLog(data: Record<string, any>) {
+  if (data.startAt && data.endAt) {
+    const start = date(data.startAt), end = date(data.endAt);
+    if (end < start || end.getTime() > Date.now() + 120000) fail(400, "Choose an end time after the start and not in the future.");
+    data.duration = Math.round((end.getTime() - start.getTime()) / 60000);
+  }
+}
 router.use("/together", (req, _res, next) => {
   if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
     const origin = req.get("origin");
@@ -71,7 +98,15 @@ router.patch("/together/profile", async (req, res) => {
   if (body.timezone) try { new Intl.DateTimeFormat("en", { timeZone: body.timezone }); } catch { fail(400, "Choose a valid timezone."); }
   if (body.stage && body.stage !== c.profile.stage && !body.confirmed) fail(400, "Please confirm this stage change.");
   if (body.name !== undefined && (!body.name.trim() || body.name.trim().length > 80)) fail(400, "Choose a name between 1 and 80 characters.");
-  const { confirmed: _confirmed, role: _permissionRole, ...changes } = body;
+  const { confirmed: _confirmed, confirmPeriodSharing: _sharingConsent, role: _permissionRole, ...changes } = body;
+  if (body.periodSharingMemberIds !== undefined) {
+    if (c.member.role === "helper") fail(403, "Limited helpers cannot share health records.");
+    const selected = [...new Set(body.periodSharingMemberIds)];
+    const members = await db.select().from(memberships).where(eq(memberships.householdId, c.householdId));
+    if (selected.some(id => !members.some(m => m.id === id && m.id !== c.member.id && m.userId && m.status === "active" && m.role !== "helper" && (!m.expiresAt || m.expiresAt > new Date())))) fail(400, "Choose active family members, not limited helpers.");
+    if (selected.some(id => !(c.profile.periodSharingMemberIds || []).includes(id)) && body.confirmPeriodSharing !== true) fail(400, "Confirm sharing your existing and future period entries with these people.");
+    changes.periodSharingMemberIds = selected;
+  }
   if (changes.name !== undefined) changes.name = changes.name.trim();
   if (changes.familyRole !== undefined) changes.familyRole = changes.familyRole.trim();
   const nextProfile = { ...c.profile, ...changes };
@@ -84,10 +119,15 @@ router.patch("/together/profile", async (req, res) => {
   let updatedMember = c.member;
   await db.transaction(async tx => {
     await tx.update(profiles).set({ data: nextProfile }).where(eq(profiles.id, c.userId));
+    if (changes.periodSharingMemberIds !== undefined) {
+      const periods = await tx.select().from(familyRecords).where(and(eq(familyRecords.authorId, c.userId), eq(familyRecords.householdId, c.householdId), eq(familyRecords.kind, "cycle")));
+      for (const period of periods) await tx.update(familyRecords).set({ data: { ...period.data, periodSharedWith: changes.periodSharingMemberIds }, scope: "private", updatedAt: new Date() }).where(eq(familyRecords.id, period.id));
+    }
     if (Object.keys(identityChanges).length) {
       [updatedMember] = await tx.update(memberships).set(identityChanges).where(eq(memberships.id, c.member.id)).returning();
     }
   });
+  if (changes.periodSharingMemberIds !== undefined) await audit(c, "periods.sharing_changed", c.member.id, { previousMemberIds: c.profile.periodSharingMemberIds || [], memberIds: changes.periodSharingMemberIds });
   if (body.stage && body.stage !== c.profile.stage) {
     await audit(c, "stage.transition", undefined, { previousStage: c.profile.stage, nextStage: body.stage });
     if (body.stage === "paused") {
@@ -100,6 +140,27 @@ router.patch("/together/profile", async (req, res) => {
     }
   }
   res.json(await bootstrap({ ...c, member: updatedMember, profile: nextProfile }));
+});
+router.post("/together/cycles/import", async (req, res) => {
+  const c = await context(req);
+  if (c.member.role === "helper") fail(403, "Limited helpers cannot import health records.");
+  const body = parse(z.object({ confirmed: z.literal(true), entries: z.array(z.object({ startDate: z.string(), endDate: z.string().optional() })).min(1).max(500) }), req.body);
+  for (const entry of body.entries) validatePeriod(entry, c.profile.timezone);
+  const result = await db.transaction(async tx => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${c.userId}))`);
+    const existing = await tx.select().from(familyRecords).where(and(eq(familyRecords.householdId, c.householdId), eq(familyRecords.authorId, c.userId), eq(familyRecords.kind, "cycle")));
+    const starts = new Set(existing.map(r => r.data.startDate));
+    let imported = 0, skipped = 0;
+    for (const entry of body.entries) {
+      if (starts.has(entry.startDate)) { skipped++; continue; }
+      starts.add(entry.startDate);
+      await tx.insert(familyRecords).values({ id: id(), householdId: c.householdId, authorId: c.userId, authorName: c.member.name, kind: "cycle", title: "Period", scope: "private", occurredAt: date(`${entry.startDate}T12:00:00Z`), data: { ...entry, source: "Flo export", periodSharedWith: c.profile.periodSharingMemberIds || [] } });
+      imported++;
+    }
+    return { imported, skipped };
+  });
+  await audit(c, "periods.imported", undefined, result);
+  res.json(result);
 });
 router.post("/together/records", async (req, res) => {
   const c = await context(req);
@@ -115,6 +176,14 @@ router.post("/together/records", async (req, res) => {
     scope, occurredAt: body.occurredAt ? date(body.occurredAt) : new Date(),
     data: body.data || {}, status: body.status || "active", notes: body.notes || "",
   };
+  if (body.kind === "cycle") {
+    validatePeriod(record.data, c.profile.timezone);
+    record.data = { ...record.data, periodSharedWith: c.profile.periodSharingMemberIds || [] };
+  }
+  if (body.kind === "child") {
+    if (!isAdmin(c)) fail(403, "Only a family administrator can add a baby profile.");
+    if (record.data.birthDate && dateOnly(record.data.birthDate, "birth date") > todayFor(c.profile.timezone)) fail(400, "A birth date cannot be in the future.");
+  }
   if (!isAdmin(c) && scope !== "private" && !canWrite(c, { ...record, createdAt: new Date(), updatedAt: new Date(), childId: record.childId || null } as any)) fail(403, "You do not have permission to add this kind of record.");
   // Author ownership must not circumvent creation grants.
   if (!isAdmin(c) && scope !== "private") {
@@ -131,9 +200,9 @@ router.post("/together/records", async (req, res) => {
     if (!["given", "skipped", "unknown"].includes(String(record.data.result))) fail(400, "Choose given, skipped, or unknown.");
   }
   if (body.kind === "sleepPlan") {
-    if (!record.data.ageMonths && record.data.ageMonths !== 0) fail(400, "Add your baby's age before choosing a routine.");
-    record.data.reviewStatus = "Unreviewed prototype material — not clinical advice";
+    validateSleepPlan(record.data);
   }
+  if (body.kind === "sleep") validateSleepLog(record.data);
   if (body.kind === "document") fail(400, "Use the protected document-upload flow.");
   if (body.kind === "transfer") fail(400, "Use the confirmed administration-transfer flow.");
   const [created] = await db.insert(familyRecords).values(record).returning();
@@ -163,6 +232,16 @@ router.patch("/together/records/:id", async (req, res) => {
   if (body.title !== undefined && !body.title.trim()) fail(400, "A title is required.");
   const { confirmDuplicate: _duplicate, occurredAt, ...rest } = body;
   const updatedData = { ...original.data, ...(body.data || {}) };
+  if (original.kind === "sleepPlan") validateSleepPlan(updatedData);
+  if (original.kind === "sleep") validateSleepLog(updatedData);
+  if (original.kind === "cycle") {
+    validatePeriod(updatedData, c.profile.timezone);
+    updatedData.periodSharedWith = c.profile.periodSharingMemberIds || [];
+  }
+  if (original.kind === "child") {
+    if (!isAdmin(c)) fail(403, "Only a family administrator can change a baby profile.");
+    if (updatedData.birthDate && dateOnly(updatedData.birthDate, "birth date") > todayFor(c.profile.timezone)) fail(400, "A birth date cannot be in the future.");
+  }
   if (["administration", "medication"].includes(original.kind)) {
     updatedData.corrections = [...(Array.isArray(original.data.corrections) ? original.data.corrections : []), {
       correctedAt: new Date().toISOString(), authorName: c.member.name, previousTitle: original.title, previousStatus: original.status,
@@ -301,7 +380,7 @@ router.post("/together/export", async (req, res) => {
   if (body.format === "ics") {
     const escape = (s: string) => s.replace(/\\/g, "\\\\").replace(/\r?\n/g, "\\n").replace(/[,;]/g, "\\$&");
     const stamp = (s: string) => date(s).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-    content = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Together//Appointments//EN", ...rows.filter(r => r.kind === "appointment").flatMap(r => [
+    content = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Kinwell//Appointments//EN", ...rows.filter(r => r.kind === "appointment").flatMap(r => [
       "BEGIN:VEVENT", `UID:${r.id}@together.local`, `DTSTAMP:${stamp(new Date().toISOString())}`,
       `DTSTART:${stamp(r.occurredAt)}`, `DTEND:${stamp(String(r.data.endAt || new Date(new Date(r.occurredAt).getTime() + 1800000).toISOString()))}`,
       `SUMMARY:${r.data.exportTitle ? escape(String(r.data.exportTitle)) : "Personal appointment"}`,
@@ -317,7 +396,7 @@ router.post("/together/export", async (req, res) => {
       rows.map(r => `${r.title}\n${r.kind} · ${r.status} · ${r.occurredAt} · recorded by ${r.authorName}\n${r.notes}\n${Object.entries(r.data || {}).filter(([key]) => !["objectPath", "claimedInviteId"].includes(key)).map(([key, value]) => `${key}: ${typeof value === "object" ? JSON.stringify(value) : value}`).join("\n")}`).join("\n\n");
     mimeType = "text/plain";
   }
-  res.json({ filename: `together-${new Date().toISOString().slice(0, 10)}.${body.format === "text" ? "txt" : body.format}`, content, mimeType });
+  res.json({ filename: `kinwell-${new Date().toISOString().slice(0, 10)}.${body.format === "text" ? "txt" : body.format}`, content, mimeType });
 });
 router.post("/together/uploads", async (req, res) => {
   const c = await context(req);

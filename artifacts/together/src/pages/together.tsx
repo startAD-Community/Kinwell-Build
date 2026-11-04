@@ -21,7 +21,7 @@ export default function TogetherPage() {
   const tab = (search.get("tab") || "circle") as (typeof TABS)[number][0];
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="pt-4 font-display text-[34px] leading-tight">Together</h1>
+      <h1 className="pt-4 font-display text-[34px] leading-tight">Circle</h1>
       <p className="text-sm text-muted-foreground">Your support circle, shared work, and handovers.</p>
       <div role="tablist" className="sticky top-[68px] z-20 -mx-4 mt-4 flex gap-1.5 overflow-x-auto bg-background/90 px-4 py-2 backdrop-blur">
         {TABS.map(([k, l]) => (
@@ -45,6 +45,7 @@ export default function TogetherPage() {
 /* ---------------- circle ---------------- */
 function Circle() {
   const { boot, me, isAdmin } = useBoot();
+  const [, nav] = useLocation();
   const { patch, transfer } = useMemberAdmin();
   const { acceptTransfer } = useAccountActions();
   const { update } = useRecords();
@@ -98,7 +99,15 @@ function Circle() {
                       <Tag tone={revoked ? "warn" : "muted"}>{m.status}</Tag>
                       {m.expiresAt ? <Tag tone="peach">Temporary · until {fmtDate(m.expiresAt)}</Tag> : <Tag>Ongoing</Tag>}
                     </div>
-                    <p className="mt-2 text-xs font-semibold text-muted-foreground">Can see</p>
+                    {!self && !revoked && (
+                      <div className="mt-2 rounded-xl bg-sand p-3 text-sm" data-testid={`sharing-summary-${m.id}`}>
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">What {m.name} can see from you</p>
+                        <p className="mt-1"><strong>Your periods:</strong> {m.canSeeYourPeriods ? "Shared with them · read only" : "Not shared"} <button type="button" className="ml-1 font-semibold underline" onClick={() => nav("/care?tab=you&topic=periods")}>Change</button></p>
+                        <p><strong>Your private check-ins:</strong> Not shared</p>
+                        <p><strong>Baby logs:</strong> {m.role.includes("admin") || m.grants.includes("baby-logs") ? "Allowed" : "Not allowed"}</p>
+                      </div>
+                    )}
+                    <p className="mt-2 text-xs font-semibold text-muted-foreground">Family areas they can see</p>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {isAdmin && !self && !revoked ? GRANTS.map((g) => {
                         const on = m.grants.includes(g.key);
@@ -195,8 +204,8 @@ function Tasks() {
     <KindSection title="Tasks" sub="Who's doing what. No scores, no shaming." kind="task" scope="household" filter={(r) => !dget(r, "recovery") && r.scope !== "private"}
       empty="No shared tasks" emptyBody="Add something someone could take on — supplies, appointments, a meal rota."
       defaults={{ status: "open" }}
-      fields={[{ key: "title", label: "Task", required: true }, { key: "data.assignee", label: "Who's doing it", type: "member" }, { key: "data.dueDate", label: "By when", type: "date" }, { key: "status", label: "Status", type: "select", options: [{ value: "open", label: "Open" }, { value: "accepted", label: "Accepted" }, { value: "done", label: "Done" }] }, { key: "notes", label: "Notes", type: "textarea" }]}
-      line={(r) => <>{ds(r, "assignee") ? `${ds(r, "assignee")} ${r.status === "accepted" ? "has accepted this" : "is assigned"}` : "Unassigned"}{ds(r, "dueDate") && ` · by ${fmtDate(ds(r, "dueDate"))}`}{ds(r, "dueDate") && ds(r, "dueDate") < today && r.status !== "done" && <Tag tone="peach" className="ml-2">Plans changed? Adjust the date</Tag>}</>}
+      fields={[{ key: "title", label: "Task", required: true }, { key: "data.assignee", label: "Responsible person", type: "member", hint: "Who's doing it. Everyone in the circle can still see the task." }, { key: "data.dueDate", label: "By when", type: "date" }, { key: "status", label: "Status", type: "select", options: [{ value: "open", label: "Open" }, { value: "accepted", label: "Accepted" }, { value: "done", label: "Done" }] }, { key: "notes", label: "Notes", type: "textarea" }]}
+      line={(r) => <>{ds(r, "assignee") ? `Responsible: ${ds(r, "assignee")}${r.status === "accepted" ? " (accepted)" : ""}` : "Nobody responsible yet"} · Whole circle can see{ds(r, "dueDate") && ` · by ${fmtDate(ds(r, "dueDate"))}`}{ds(r, "dueDate") && ds(r, "dueDate") < today && r.status !== "done" && <Tag tone="peach" className="ml-2">Plans changed? Adjust the date</Tag>}</>}
       actions={(r) => r.status === "done" ? <Btn size="sm" variant="ghost" onClick={() => update.mutate({ id: r.id, data: { status: "open" } })}>Reopen</Btn> : <>
         {r.status !== "accepted" && <Btn size="sm" variant="soft" onClick={() => update.mutate({ id: r.id, data: { status: "accepted", data: { ...(r.data as object), assignee: ds(r, "assignee") || myName } } })} data-testid={`button-accept-task-${r.id}`}>I'll take it</Btn>}
         <Btn size="sm" onClick={() => update.mutate({ id: r.id, data: { status: "done" } })} data-testid={`button-complete-task-${r.id}`}>Mark done</Btn>
@@ -223,7 +232,7 @@ function Help({ prepare }: { prepare: string | null }) {
   const list = byKind(boot.records, "help");
   const share = async () => {
     const r = await create.mutateAsync({ kind: "help", title: `${cat}${when_ ? ` · ${fmtDate(when_)}` : ""}`, notes: msg, status: "open", scope: "household", data: { category: cat, dueDate: when_ || undefined, recipients: recips } });
-    toast({ title: "Request shared in-app", description: recips.length ? `Visible to ${recips.join(", ")} in Together. No email or SMS was sent.` : "Visible in Together. No email or SMS was sent." });
+    toast({ title: "Request shared in-app", description: recips.length ? `Visible to ${recips.join(", ")} in Circle. No email or SMS was sent.` : "Visible in Circle. No email or SMS was sent." });
     setStep(null); setMsg(""); setRecips([]); nav("/together?tab=help");
     setLink(r);
   };
@@ -286,13 +295,13 @@ function Shifts() {
   const tz = boot.profile.timezone;
   return (
     <>
-      <Surface tone="sand" className="mb-6 text-sm">Care time shows who has <strong>accepted</strong> responsibility. Together doesn't verify who is physically caring. If someone is feeding, agree with them before scheduling them away — the app never does it automatically.</Surface>
+      <Surface tone="sand" className="mb-6 text-sm">Care time shows who has <strong>accepted</strong> responsibility. Kinwell doesn't verify who is physically caring. If someone is feeding, agree with them before scheduling them away — the app never does it automatically.</Surface>
       <KindSection title="Care time & protected rest" kind="shift" scope="household" testid="section-shifts"
         empty="No care time planned yet" emptyBody="Offer to cover a night, or protect a rest window for someone recovering."
         defaults={{ status: "offered", "data.type": "care" }}
         fields={[{ key: "title", label: "Name", required: true, placeholder: "Night care window" }, { key: "data.type", label: "Type", type: "select", options: [{ value: "care", label: "Care window" }, { value: "rest", label: "Protected rest" }] }, { key: "data.startAt", label: "Starts", type: "datetime" }, { key: "data.endAt", label: "Ends", type: "datetime" }, { key: "data.assignee", label: "Responsible person", type: "member" }, { key: "status", label: "Status", type: "select", options: [{ value: "offered", label: "Offered" }, { value: "accepted", label: "Accepted" }] }, { key: "notes", label: "Notes", type: "textarea", hint: "e.g. bottles in the fridge, feeding parent sleeping in the back room" }]}
         line={(r) => <><span className="flex flex-wrap gap-1.5"><Tag tone={ds(r, "type") === "rest" ? "peach" : "sky"}>{ds(r, "type") === "rest" ? "Protected rest" : "Care window"}</Tag><Tag tone={r.status === "accepted" ? "sage" : r.status === "change requested" ? "warn" : "muted"}>{r.status === "accepted" ? "Accepted" : r.status === "change requested" ? "Change requested" : "Offered — not yet accepted"}</Tag></span>
-          <span className="mt-1 block">{fmtTime(ds(r, "startAt"), tz)} – {fmtClock(ds(r, "endAt"), tz)} · {ds(r, "assignee") || "Nobody yet"}</span>
+          <span className="mt-1 block">{fmtTime(ds(r, "startAt"), tz)} – {fmtClock(ds(r, "endAt"), tz)} · Responsible: {ds(r, "assignee") || "nobody yet"}</span>
           {ds(r, "changeRequest") && <span className="mt-1 block text-sm">Change asked: "{ds(r, "changeRequest")}"</span>}</>}
         actions={(r) => <>
           {r.status !== "accepted" && <Btn size="sm" onClick={() => update.mutate({ id: r.id, data: { status: "accepted", data: { ...(r.data as object), assignee: ds(r, "assignee") || myName, changeRequest: null } } })} data-testid={`button-accept-shift-${r.id}`}>Accept{ds(r, "assignee") ? ` for ${ds(r, "assignee")}` : " — I'll take it"}</Btn>}

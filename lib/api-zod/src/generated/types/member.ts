@@ -9,6 +9,7 @@ export interface Member {
   id: string;
   name: string;
   familyRole?: string;
+  canSeeYourPeriods?: boolean;
   avatar?: string;
   avatarColor?: string;
   role: string;
