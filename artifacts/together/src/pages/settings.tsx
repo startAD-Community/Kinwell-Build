@@ -11,6 +11,8 @@ import type { ProfileInput, ProfileInputStage } from "@workspace/api-client-reac
 import { Btn, Chip, Surface, Tag, SectionTitle, Confirm, inputCls } from "@/components/kit";
 import { Logo } from "@/components/shell";
 import { cn } from "@/lib/utils";
+import { ProfileEditor, FamilyRolePicker, type Identity } from "@/components/profile-editor";
+import { AnimalAvatar, ANIMALS, AVATAR_COLORS, permissionLabel, type Animal, type AvatarColor } from "@/components/avatar";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 const COUNTRIES = ["United Kingdom", "Ireland", "United States", "Canada", "Australia", "New Zealand", "Other"];
@@ -26,10 +28,10 @@ export function Onboarding() {
   const save = useProfileUpdate();
   const [step, setStep] = useState(0);
   const [who, setWho] = useState<"preparing" | "pregnant" | "parent" | "supporter" | "">("");
-  const [f, setF] = useState<ProfileInput>({ name: boot.profile.name || "", country: "United Kingdom", timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, priorities: [] });
+  const [f, setF] = useState<ProfileInput>({ name: boot.profile.name || "", country: "United Kingdom", timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, priorities: [], familyRole: "", avatar: ANIMALS[0], avatarColor: AVATAR_COLORS[0] });
   const [unsure, setUnsure] = useState(false);
   const stage: ProfileInputStage = who === "preparing" ? "preconception" : who === "pregnant" ? "pregnancy" : "postpartum";
-  const finish = () => save.mutate({ ...f, stage, role: "admin", confirmed: true, onboardingComplete: true, dueDate: unsure ? undefined : f.dueDate, birthDate: unsure ? undefined : f.birthDate });
+  const finish = () => save.mutate({ ...f, familyRole: f.familyRole?.trim() || undefined, stage, role: "admin", confirmed: true, onboardingComplete: true, dueDate: unsure ? undefined : f.dueDate, birthDate: unsure ? undefined : f.birthDate });
   const steps = [
     <div key="w"><h2 className="font-display text-3xl">Where are you right now?</h2><p className="mt-1 text-muted-foreground">You can change this any time.</p>
       <div className="mt-5 grid gap-2">{([["preparing", "Getting ready to try"], ["pregnant", "Pregnant, or my partner is"], ["parent", "Our baby is here"], ["supporter", "I'm helping someone else"]] as const).map(([k, l]) => <button key={k} type="button" onClick={() => setWho(k)} className={cn("press min-h-14 rounded-2xl border px-4 text-left text-[17px] font-semibold", who === k ? "border-primary bg-sage" : "border-input bg-card")}>{l}</button>)}</div>
@@ -37,6 +39,8 @@ export function Onboarding() {
     </div>,
     <div key="d" className="space-y-4"><h2 className="font-display text-3xl">A few details</h2>
       <L label="Your name"><input className={inputCls} value={f.name || ""} onChange={(e) => setF({ ...f, name: e.target.value })} /></L>
+      <FamilyRolePicker value={f.familyRole || ""} onChange={(familyRole) => setF({ ...f, familyRole })} optional idPrefix="ob-fr" />
+      <div><p className="mb-1.5 text-sm font-semibold">Pick an avatar</p><div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Avatar">{ANIMALS.map((a) => <button key={a} type="button" role="radio" aria-checked={f.avatar === a} aria-label={a} onClick={() => setF({ ...f, avatar: a })} className={cn("press rounded-full border-2 p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", f.avatar === a ? "border-primary" : "border-transparent")}><AnimalAvatar member={{ name: f.name, avatar: a, avatarColor: f.avatarColor }} size="md" decorative /></button>)}</div><p className="mt-1 text-xs text-muted-foreground">You can change your avatar, colour and role in Settings.</p></div>
       {who === "pregnant" && !unsure && <L label="Due date"><input type="date" className={inputCls} value={f.dueDate || ""} onChange={(e) => setF({ ...f, dueDate: e.target.value })} /></L>}
       {who === "parent" && !unsure && <L label="Baby's birth date"><input type="date" className={inputCls} value={f.birthDate || ""} onChange={(e) => setF({ ...f, birthDate: e.target.value })} /></L>}
       {who === "parent" && <L label="Baby's name (optional)"><input className={inputCls} value={f.childName || ""} onChange={(e) => setF({ ...f, childName: e.target.value })} /></L>}
@@ -75,7 +79,16 @@ export default function SettingsPage() {
   const qc = useQueryClient();
   const [, nav] = useLocation();
   const [f, setF] = useState<ProfileInput>({});
-  useEffect(() => { setF({ name: p.name, country: p.country, timezone: p.timezone, quietHours: p.quietHours, feedingApproach: p.feedingApproach, priorities: p.priorities || [], logCategories: p.logCategories || LOG_CATEGORIES.map((c) => c.key) }); }, [p.name, p.country, p.timezone, p.quietHours, p.feedingApproach]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [idn, setIdn] = useState<Identity>(() => ({ name: p.name, familyRole: p.familyRole || "", avatar: p.avatar as Animal | undefined, avatarColor: p.avatarColor as AvatarColor | undefined }));
+  const me = boot.members.find((m) => m.id === p.memberId);
+  useEffect(() => { setIdn({ name: p.name, familyRole: p.familyRole || "", avatar: p.avatar as Animal | undefined, avatarColor: p.avatarColor as AvatarColor | undefined }); }, [p.name, p.familyRole, p.avatar, p.avatarColor]);
+  const saveIdentity = () => {
+    const name = (idn.name || "").trim();
+    if (!name) { toast({ title: "Add a name first", variant: "destructive" }); return; }
+    // Only personal identity fields — never permission role.
+    save.mutate({ name, familyRole: (idn.familyRole || "").trim().slice(0, 40), avatar: idn.avatar, avatarColor: idn.avatarColor }, { onSuccess: () => toast({ title: "Profile saved" }) });
+  };
+  useEffect(() => { setF({ country: p.country, timezone: p.timezone, quietHours: p.quietHours, feedingApproach: p.feedingApproach, priorities: p.priorities || [], logCategories: p.logCategories || LOG_CATEGORIES.map((c) => c.key) }); }, [p.country, p.timezone, p.quietHours, p.feedingApproach]); // eslint-disable-line react-hooks/exhaustive-deps
   const [trans, setTrans] = useState<null | ProfileInputStage>(null);
   const [tDate, setTDate] = useState("");
   const [tName, setTName] = useState("");
@@ -99,9 +112,16 @@ export default function SettingsPage() {
     <div className="mx-auto max-w-2xl space-y-10 pb-10">
       <h1 className="pt-4 font-display text-[34px]">Settings</h1>
 
-      <section><SectionTitle title="You" />
+      <section><SectionTitle title="Your profile" sub="How you appear to your circle. Only you can change it." />
+        <Surface className="space-y-4" data-testid="section-profile">
+          <ProfileEditor value={idn} onChange={setIdn} memberId={p.memberId} />
+          <p className="rounded-xl bg-sky px-3 py-2 text-sm text-accent-foreground">Access: <strong>{permissionLabel(me?.role || p.role || "")}</strong>. Your family role is how you're known — it doesn't grant or remove access. Access is set by an administrator in Circle.</p>
+          <Btn onClick={saveIdentity} disabled={save.isPending} data-testid="button-save-identity">{save.isPending ? "Saving…" : "Save profile"}</Btn>
+        </Surface>
+      </section>
+
+      <section><SectionTitle title="Preferences" />
         <Surface className="space-y-4">
-          <L label="Name"><input className={inputCls} value={f.name || ""} onChange={(e) => setF({ ...f, name: e.target.value })} /></L>
           <div className="grid gap-4 sm:grid-cols-2">
             <L label="Country"><select className={inputCls} value={f.country || ""} onChange={(e) => setF({ ...f, country: e.target.value })}>{COUNTRIES.map((c) => <option key={c}>{c}</option>)}</select></L>
             <L label="Timezone"><select className={inputCls} value={f.timezone || ""} onChange={(e) => setF({ ...f, timezone: e.target.value })}>{tzList().map((t) => <option key={t}>{t}</option>)}</select></L>
@@ -137,7 +157,7 @@ export default function SettingsPage() {
             <div>
               <p className="text-sm font-semibold">View the demo as another family member</p>
               <p className="text-xs">Demo only. This switches between sample personas so you can try both sides of a flow (e.g. Maya requests a transfer, Alex accepts). It is not real impersonation and is unavailable for real families.</p>
-              <div className="mt-2 flex flex-wrap gap-2">{boot.members.filter((m) => m.status !== "revoked").map((m) => <Chip key={m.id} active={m.id === p.memberId} disabled={!!busy} onClick={async () => { setBusy(m.id); try { await switchPersona(m.id); toast({ title: `Now viewing as ${m.name}` }); } catch (e) { toast({ title: "Couldn't switch", description: errMessage(e), variant: "destructive" }); } setBusy(null); }}>{m.name} · {m.role}</Chip>)}</div>
+              <div className="mt-2 flex flex-wrap gap-2">{boot.members.filter((m) => m.status !== "revoked").map((m) => <Chip key={m.id} active={m.id === p.memberId} disabled={!!busy} onClick={async () => { setBusy(m.id); try { await switchPersona(m.id); toast({ title: `Now viewing as ${m.name}` }); } catch (e) { toast({ title: "Couldn't switch", description: errMessage(e), variant: "destructive" }); } setBusy(null); }}><AnimalAvatar member={m} size="xs" decorative />{m.name} · {m.familyRole || permissionLabel(m.role)}</Chip>)}</div>
             </div>
             {!signedIn && <div className="flex gap-2"><Link href="/sign-up" className="press inline-flex min-h-11 items-center rounded-xl bg-primary px-4 font-semibold text-primary-foreground">Start your own family</Link><Link href="/sign-in" className="press inline-flex min-h-11 items-center rounded-xl border border-input bg-card px-4 font-semibold">Sign in</Link></div>}
           </Surface>

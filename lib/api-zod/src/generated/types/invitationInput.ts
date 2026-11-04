@@ -8,6 +8,8 @@ import type { InvitationInputRole } from './invitationInputRole';
 
 export interface InvitationInput {
   name: string;
+  /** @maxLength 40 */
+  familyRole?: string;
   role: InvitationInputRole;
   grants: string[];
   expiresAt?: string;

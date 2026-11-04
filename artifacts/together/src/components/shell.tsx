@@ -15,6 +15,7 @@ import { ago, fmtClock } from "@/lib/format";
 import { WARNING_SIGNS } from "@/lib/content";
 import { Btn, Chip, Tag, inputCls } from "./kit";
 import { useAdministration } from "./med";
+import { AnimalAvatar } from "./avatar";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -188,7 +189,7 @@ function Notifications() {
   const unread = items.filter((r) => +new Date(r.updatedAt) > seen).length;
   const verb = (r: Rec) =>
     r.kind === "notification" ? r.title :
-    r.kind === "shift" ? `${r.authorName} ${r.status === "accepted" ? "accepted" : "updated"} a shift: ${r.title}` :
+    r.kind === "shift" ? `${r.authorName} ${r.status === "accepted" ? "accepted" : "updated"} care time: ${r.title}` :
     r.kind === "help" ? `${r.authorName} updated a help request: ${r.title} (${r.status || "open"})` :
     r.kind === "task" ? `${r.authorName} updated "${r.title}"` :
     r.kind === "transfer" ? `Administration transfer: ${r.status || "pending"}` :
@@ -226,16 +227,16 @@ function AccountMenu() {
   const clerk = useClerk();
   const qc = useQueryClient();
   const up = useProfileUpdate();
-  const initials = (boot.profile.name || "You").split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" className="press flex h-11 w-11 items-center justify-center rounded-full bg-peach text-sm font-bold text-secondary-foreground" aria-label="Account menu" data-testid="button-account">{initials}</button>
+        <button type="button" className="press flex h-11 w-11 items-center justify-center rounded-full" aria-label={`Account menu for ${boot.profile.name || "you"}`} data-testid="button-account"><AnimalAvatar member={{ id: boot.profile.memberId, name: boot.profile.name, avatar: boot.profile.avatar, avatarColor: boot.profile.avatarColor }} decorative /></button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64 rounded-2xl p-2">
-        <DropdownMenuLabel>
-          <p className="font-display text-base">{boot.profile.name || "You"}</p>
-          <p className="text-xs font-normal text-muted-foreground">{boot.profile.isDemo ? "Demo session" : "Your family"} · {boot.profile.stage}</p>
+        <DropdownMenuLabel className="flex items-center gap-3">
+          <AnimalAvatar member={{ id: boot.profile.memberId, name: boot.profile.name, avatar: boot.profile.avatar, avatarColor: boot.profile.avatarColor }} size="sm" decorative />
+          <span><p className="font-display text-base">{boot.profile.name || "You"}{boot.profile.familyRole && <span className="ml-1.5 font-sans text-xs font-semibold text-muted-foreground">{boot.profile.familyRole}</span>}</p>
+          <p className="text-xs font-normal text-muted-foreground">{boot.profile.isDemo ? "Demo session" : "Your family"} · {boot.profile.stage}</p></span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem className="min-h-11 rounded-xl" onSelect={() => nav("/settings")}><Settings className="mr-2 h-4 w-4" />Profile, stage & privacy</DropdownMenuItem>

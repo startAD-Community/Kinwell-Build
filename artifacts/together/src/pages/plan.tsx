@@ -3,7 +3,7 @@ import { useLocation, useSearch } from "wouter";
 import { CalendarX2, Download, FileText, Pencil, Plus, RefreshCw, Trash2, Upload, Check } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { getGetBootstrapQueryKey } from "@workspace/api-client-react";
+import { getGetBootstrapQueryKey, type Bootstrap } from "@workspace/api-client-react";
 import { useBoot } from "@/lib/boot";
 import { useRecords, byKind, ds, dget, when, runExport, errMessage, uploadDocument, validateFile, documentUrl, type Rec } from "@/lib/api";
 import { fmtDate, fmtTime } from "@/lib/format";
@@ -84,9 +84,57 @@ function Appointments({ focus }: { focus: string | null }) {
   );
 }
 
+
+/* Instant, race-safe "answered" toggle. Per-record optimistic override; writes are serialised per
+   question so rapid taps collapse to the latest intent. Failure rolls back only that row. */
+type AnsState = { value: boolean; saving: boolean };
+function useAnsweredToggle() {
+  const { update } = useRecords();
+  const qc = useQueryClient();
+  const mutRef = useRef(update.mutateAsync);
+  mutRef.current = update.mutateAsync;
+  const [over, setOver] = useState<Record<string, AnsState>>({});
+  const want = useRef<Record<string, boolean>>({});
+  const busy = useRef<Record<string, boolean>>({});
+  const drop = (id: string) => setOver((o) => { const n = { ...o }; delete n[id]; return n; });
+  const run = async (q: Rec) => {
+    busy.current[q.id] = true;
+    for (;;) {
+      const target = want.current[q.id];
+      try {
+        const saved = await mutRef.current({ id: q.id, data: { data: { answered: target } } });
+        if (want.current[q.id] !== target) continue;
+        qc.setQueryData<Bootstrap>(getGetBootstrapQueryKey(), (old) => old ? { ...old, records: old.records.map((r) => (r.id === saved.id ? saved : r)) } : old);
+        break;
+      } catch { break; /* toast shown by useRecords; roll back to server value */ }
+    }
+    delete want.current[q.id]; busy.current[q.id] = false; drop(q.id);
+  };
+  const toggle = (q: Rec) => {
+    const cur = q.id in want.current ? want.current[q.id] : !!dget(q, "answered");
+    want.current[q.id] = !cur;
+    setOver((o) => ({ ...o, [q.id]: { value: !cur, saving: true } }));
+    if (!busy.current[q.id]) void run(q);
+  };
+  const state = (q: Rec): AnsState => over[q.id] || { value: !!dget(q, "answered"), saving: false };
+  return { toggle, state };
+}
+
+function AnsweredBox({ q, st, onToggle }: { q: Rec; st: AnsState; onToggle: () => void }) {
+  return (
+    <button type="button" role="checkbox" aria-checked={st.value} aria-busy={st.saving} aria-label={`Answered: ${q.title}${st.saving ? " (saving)" : ""}`} onClick={onToggle}
+      onKeyDown={(e) => { if (e.key === " ") { e.preventDefault(); onToggle(); } }} data-testid={`checkbox-answered-${q.id}`}
+      className={cn("press relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", st.value ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card")}>
+      {st.value && <Check className="h-4 w-4" />}
+      {st.saving && <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 animate-pulse rounded-full bg-peach ring-2 ring-card" aria-hidden />}
+    </button>
+  );
+}
+
 function ApptCard({ a, onEdit, open, past }: { a: Rec; onEdit: () => void; open?: boolean; past?: boolean }) {
   const { boot } = useBoot();
   const { create, update } = useRecords();
+  const ans = useAnsweredToggle();
   const [cancel, setCancel] = useState(false);
   const [summary, setSummary] = useState(false);
   const qs = byKind(boot.records, "question").filter((q) => ds(q, "appointmentId") === a.id);
@@ -109,13 +157,13 @@ function ApptCard({ a, onEdit, open, past }: { a: Rec; onEdit: () => void; open?
       </div>
       <details open={open} className="mt-3">
         <summary className="min-h-11 cursor-pointer font-semibold">Questions ({qs.length})</summary>
-        <ul className="mt-1 space-y-1">{qs.map((q) => (
+        <ul className="mt-1 space-y-1">{qs.map((q) => { const st = ans.state(q); return (
           <li key={q.id} className="flex items-center gap-2">
-            <button type="button" role="checkbox" aria-checked={!!dget(q, "answered")} aria-label={`Answered: ${q.title}`} onClick={() => update.mutate({ id: q.id, data: { data: { ...(q.data as object), answered: !dget(q, "answered") } } })} className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border", dget(q, "answered") ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card")}>{!!dget(q, "answered") && <Check className="h-4 w-4" />}</button>
-            <span className={cn("flex-1 text-[15px]", !!dget(q, "answered") && "text-muted-foreground line-through")}>{q.title}</span>
+            <AnsweredBox q={q} st={st} onToggle={() => ans.toggle(q)} />
+            <span className={cn("flex-1 text-[15px]", st.value && "text-muted-foreground line-through")}>{q.title}{st.saving && <span className="ml-2 text-xs text-muted-foreground no-underline" aria-live="polite">Saving…</span>}</span>
             <Btn size="sm" variant="ghost" onClick={() => update.mutate({ id: q.id, data: { data: { ...(q.data as object), appointmentId: null } } })}>Unlink</Btn>
           </li>
-        ))}</ul>
+        ); })}</ul>
         <div className="mt-2 flex flex-wrap gap-2">
           {QUESTION_CHIPS.filter((c) => !qs.some((q) => q.title === c)).slice(0, 5).map((c) => <Chip key={c} className="min-h-9 text-sm" onClick={() => create.mutate({ kind: "question", title: c, scope: a.scope === "private" ? "private" : "household", data: { appointmentId: a.id, answered: false } })}><Plus className="h-3.5 w-3.5" />{c}</Chip>)}
           {loose.slice(0, 4).map((q) => <Chip key={q.id} className="min-h-9 border-primary/50 text-sm" onClick={() => update.mutate({ id: q.id, data: { data: { ...(q.data as object), appointmentId: a.id } } })}><Plus className="h-3.5 w-3.5" />Saved: {q.title}</Chip>)}
@@ -176,6 +224,7 @@ function VisitSummary({ a, questions, onClose }: { a: Rec; questions: Rec[]; onC
 function Questions() {
   const { boot } = useBoot();
   const { create, update, remove } = useRecords();
+  const ans = useAnsweredToggle();
   const [text, setText] = useState("");
   const [appt, setAppt] = useState("");
   const appts = byKind(boot.records, "appointment").filter((a) => a.status !== "cancelled" && +new Date(when(a)) > Date.now() - 36e5);
@@ -196,12 +245,13 @@ function Questions() {
       </Surface>
       <ul className="mt-4 space-y-2">{qs.map((q) => {
         const ap = byKind(boot.records, "appointment").find((a) => a.id === ds(q, "appointmentId"));
+        const st = ans.state(q);
         return (
           <li key={q.id} className="rounded-2xl border border-card-border bg-card p-3">
             <div className="flex items-start justify-between gap-2">
-              <div><p className={cn("font-semibold", !!dget(q, "answered") && "line-through text-muted-foreground")}>{q.title}</p><p className="text-xs text-muted-foreground">{ap ? `For ${ap.title} · ${fmtDate(when(ap))}` : "Not linked to an appointment"}</p><Meta r={q} /></div>
+              <div><p className={cn("font-semibold", st.value && "line-through text-muted-foreground")}>{q.title}</p><p className="text-xs text-muted-foreground">{ap ? `For ${ap.title} · ${fmtDate(when(ap))}` : "Not linked to an appointment"}</p><Meta r={q} /></div>
               <div className="flex">
-                <Btn size="sm" variant="ghost" onClick={() => update.mutate({ id: q.id, data: { data: { ...(q.data as object), answered: !dget(q, "answered") } } })}>{dget(q, "answered") ? "Reopen" : "Answered"}</Btn>
+                <Btn size="sm" variant="ghost" aria-pressed={st.value} aria-busy={st.saving} onClick={() => ans.toggle(q)} data-testid={`button-answered-${q.id}`}>{st.saving ? "Saving…" : st.value ? "Reopen" : "Answered"}</Btn>
                 <button type="button" aria-label="Delete question" className="flex h-11 w-11 items-center justify-center rounded-xl hover:bg-muted" onClick={() => remove.mutate(q.id)}><Trash2 className="h-4 w-4" /></button>
               </div>
             </div>

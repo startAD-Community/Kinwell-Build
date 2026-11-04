@@ -4,10 +4,16 @@
  * Api
  * OpenAPI spec version: 1.0.0
  */
+import type { ProfileInputAvatar } from './profileInputAvatar';
+import type { ProfileInputAvatarColor } from './profileInputAvatarColor';
 import type { ProfileInputStage } from './profileInputStage';
 
 export interface ProfileInput {
   name?: string;
+  /** @maxLength 40 */
+  familyRole?: string;
+  avatar?: ProfileInputAvatar;
+  avatarColor?: ProfileInputAvatarColor;
   stage?: ProfileInputStage;
   role?: string;
   country?: string;

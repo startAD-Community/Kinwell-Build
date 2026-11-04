@@ -143,7 +143,7 @@ function Intro({ signedIn, onSwitch, switching, current }: { signedIn: boolean; 
         <div aria-hidden className="absolute -right-2 top-16 h-28 w-28 rounded-full bg-sky/40" />
         <p className="relative text-xs font-bold uppercase tracking-[0.14em] opacity-80">A companion for becoming parents</p>
         <h1 className="relative mt-2 max-w-md font-display text-[34px] leading-[1.05] md:text-[44px]">Know what comes next. Share the work. Feel more prepared.</h1>
-        <p className="relative mt-3 max-w-md text-[15px] opacity-90">You're looking at a live demo family. Tap around — log a feed, claim a shift, ask for a meal. It's a separate sample space, reset any time.</p>
+        <p className="relative mt-3 max-w-md text-[15px] opacity-90">You're looking at a live demo family. Tap around — log a feed, take a care window, ask for a meal. It's a separate sample space, reset any time.</p>
         <div className="relative mt-5 flex flex-wrap gap-2">
           {!signedIn && <Link href="/sign-up" className="press inline-flex min-h-12 items-center rounded-xl bg-card px-5 font-semibold text-foreground" data-testid="link-start-own">Start your own family</Link>}
           {!signedIn && <Link href="/sign-in" className="press inline-flex min-h-12 items-center rounded-xl border border-primary-foreground/40 px-5 font-semibold" data-testid="link-sign-in">Sign in</Link>}
@@ -172,7 +172,7 @@ function NowNext({ current, next }: { current?: Rec; next?: Rec }) {
     <Link href="/together?tab=shifts" className="rise mt-4 flex items-stretch gap-2 rounded-2xl border border-card-border bg-card p-1.5 text-sm" data-testid="strip-now-next">
       <div className="flex-1 rounded-xl bg-sage px-3 py-2">
         <p className="text-xs font-bold text-muted-foreground">NOW</p>
-        <p className="font-semibold">{current ? `${ds(current, "assignee") || current.authorName} · until ${fmtClock(ds(current, "endAt"), tz)}` : "No accepted shift"}</p>
+        <p className="font-semibold">{current ? `${ds(current, "assignee") || current.authorName} · until ${fmtClock(ds(current, "endAt"), tz)}` : "No care time agreed yet"}</p>
       </div>
       <div className="flex-1 rounded-xl px-3 py-2">
         <p className="text-xs font-bold text-muted-foreground">NEXT</p>

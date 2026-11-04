@@ -51,6 +51,31 @@ export interface DemoInput {
   reset?: boolean;
 }
 
+export type ProfileInputAvatar = typeof ProfileInputAvatar[keyof typeof ProfileInputAvatar];
+
+
+export const ProfileInputAvatar = {
+  bunny: 'bunny',
+  bear: 'bear',
+  fox: 'fox',
+  cat: 'cat',
+  panda: 'panda',
+  koala: 'koala',
+  owl: 'owl',
+  penguin: 'penguin',
+} as const;
+
+export type ProfileInputAvatarColor = typeof ProfileInputAvatarColor[keyof typeof ProfileInputAvatarColor];
+
+
+export const ProfileInputAvatarColor = {
+  sage: 'sage',
+  peach: 'peach',
+  sky: 'sky',
+  lavender: 'lavender',
+  butter: 'butter',
+} as const;
+
 export type ProfileInputStage = typeof ProfileInputStage[keyof typeof ProfileInputStage];
 
 
@@ -63,6 +88,10 @@ export const ProfileInputStage = {
 
 export interface ProfileInput {
   name?: string;
+  /** @maxLength 40 */
+  familyRole?: string;
+  avatar?: ProfileInputAvatar;
+  avatarColor?: ProfileInputAvatarColor;
   stage?: ProfileInputStage;
   role?: string;
   country?: string;
@@ -176,6 +205,9 @@ export type FamilyRecord = RecordInput & {
 export interface Member {
   id: string;
   name: string;
+  familyRole?: string;
+  avatar?: string;
+  avatarColor?: string;
   role: string;
   status: string;
   grants: string[];
@@ -201,6 +233,8 @@ export const InvitationInputRole = {
 
 export interface InvitationInput {
   name: string;
+  /** @maxLength 40 */
+  familyRole?: string;
   role: InvitationInputRole;
   grants: string[];
   expiresAt?: string;
@@ -210,6 +244,7 @@ export interface InvitationInput {
 export interface Invitation {
   id: string;
   name: string;
+  familyRole?: string;
   role: string;
   status: string;
   grants: string[];

@@ -52,3 +52,20 @@ After a reported preview-loading failure, a focused browser test passed:
 - Session cookie metadata confirmed HttpOnly, Secure, SameSite=None, and partitioned by top-level site. No token values were reported.
 
 The browser could not explicitly be configured to block every unpartitioned third-party cookie. Real Clerk sign-in was not exercised by this regression.
+
+## Family identity, profiles and appointment responsiveness
+
+Full workspace typecheck passed after the schema/contract/UI changes; the web typecheck also passed after the final avatar fallback fix.
+
+Focused anonymous-demo browser verification passed:
+
+- Circle distinguishes Mother, Father and Helper from administrator/caregiver/helper access, with distinct SVG avatars, including after reload.
+- “Care time” is visible while compatibility route and record identifiers remain unchanged.
+- Profile name, custom family role, panda avatar and lavender color persist after saving/reloading and appear consistently in Settings, header and Circle.
+- Changing a family-role label leaves access permissions and other members' identities unchanged.
+- The Settings profile editor has no horizontal overflow at a 390px viewport.
+- Question ticks update before a deliberately delayed two-second PATCH finishes, persist on reload, serialize rapid toggles per question, and roll back with an error toast on a simulated failed write without changing another question.
+- The appointment-card checkbox exposes checkbox semantics and responds to keyboard Space.
+- Participant selection responds immediately in the appointment editor and persists after Save/reload.
+
+An initial test found a deterministic-avatar fallback crash for some member IDs. The unsigned hash-index fix and synchronous profile initialization were verified in the previously blocked profile flow. The full-product and real-account limitations above still apply.

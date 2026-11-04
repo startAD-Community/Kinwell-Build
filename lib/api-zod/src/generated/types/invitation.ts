@@ -9,6 +9,7 @@ import type { FamilyRecord } from './familyRecord';
 export interface Invitation {
   id: string;
   name: string;
+  familyRole?: string;
   role: string;
   status: string;
   grants: string[];

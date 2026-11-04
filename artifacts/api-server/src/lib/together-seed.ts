@@ -30,13 +30,13 @@ export async function createDemo(stage: string) {
   add("contact", "Family health centre", "Demo contact — replace with your verified care team.", { phone: "", email: "", type: "clinician" }, { scope: "household" });
   add("preference", "A little walk usually helps", "Noah often settles with gentle movement and a familiar voice. This is a family observation, not a medical instruction.", { category: "comfort", source: "Family preference" });
   add("preference", "Our feeding preferences", "Follow the current family feeding plan. Ask us if anything is unclear.", { category: "feeding", source: "Family preference" });
-  add("checklist", "Getting ready for childcare", "Choose what fits your family; nothing here is mandatory.", { items: [{ text: "Choose your care arrangement", done: false }, { text: "Share feeding preferences", done: true }, { text: "Plan a settling-in visit", done: false }, { text: "Agree care shifts for returning to work", done: false }] }, { scope: "household" });
+  add("checklist", "Getting ready for childcare", "Choose what fits your family; nothing here is mandatory.", { items: [{ text: "Choose your care arrangement", done: false }, { text: "Share feeding preferences", done: true }, { text: "Plan a settling-in visit", done: false }, { text: "Agree shared care time for returning to work", done: false }] }, { scope: "household" });
   add("checklist", "Your local paperwork", "Unverified sample checklist. Confirm requirements and eligibility with your local authority.", { jurisdiction: "United Kingdom — prototype", source: "https://www.gov.uk/register-birth", reviewDate: "", reviewStatus: "Unreviewed sample", items: [{ text: "Check local birth-registration requirements", done: false }, { text: "Discuss leave arrangements", done: false }, { text: "Look into childcare applications", done: false }] }, { scope: "household" });
   if (stage === "postpartum") {
     add("feed", "Bottle feed", "Last recorded feed, not a complete feeding history.", { method: "bottle", type: "expressed milk", amount: 90, unit: "ml" }, { occurredAt: at(-1.2), authorName: "Alex" });
     add("sleep", "A little afternoon nap", "", { startAt: at(-3).toISOString(), endAt: at(-2).toISOString(), duration: 60 }, { occurredAt: at(-3) });
     add("diaper", "Wet diaper", "", { type: "wet" }, { occurredAt: at(-2.5), authorName: "Alex" });
-    add("shift", "Tonight, shared", "Offered care shift. Acceptance is not verification of physical supervision.", { assignee: "Alex", startAt: at(6).toISOString(), endAt: at(10).toISOString(), protectedRest: true }, { status: "accepted", scope: "household", occurredAt: at(6) });
+    add("shift", "Tonight, shared", "Offered care time. Acceptance is not verification of physical supervision.", { assignee: "Alex", startAt: at(6).toISOString(), endAt: at(10).toISOString(), protectedRest: true }, { status: "accepted", scope: "household", occurredAt: at(6) });
     add("routine", "A gentle wind-down", "Sample family routine — not clinically reviewed. Follow your care team's guidance and current safe-sleep recommendations.", { steps: ["A quieter room", "A feed if needed", "A familiar goodnight", "Follow current safe-sleep guidance"], source: "https://www.nhs.uk/conditions/baby/caring-for-a-newborn/helping-your-baby-to-sleep/", reviewStatus: "Unreviewed sample" });
     add("help", "A home-cooked meal", "Something easy to reheat would be lovely.", { assignee: "Sam", recipients: ["Sam"], dueDate: date(1) }, { scope: "household", status: "open" });
   }
@@ -69,9 +69,9 @@ export async function createDemo(stage: string) {
       { id: alexUserId, householdId, data: { name: "Alex", stage, country: profile.country, timezone: profile.timezone, childName: profile.childName, birthDate: profile.birthDate, onboardingComplete: true, priorities: ["Shared care"], logCategories: ["feed", "sleep", "diaper"] } },
     ]);
     await tx.insert(memberships).values([
-      { id: id(), householdId, userId, name: "Maya", role: "administrator", status: "active", grants: ["care", "tasks", "documents", "medication", "appointments"] },
-      { id: id(), householdId, userId: alexUserId, name: "Alex", role: "caregiver", status: "active", grants: ["care", "tasks", "shifts"] },
-      { id: id(), householdId, name: "Sam", role: "helper", status: "invited", grants: ["tasks"] },
+      { id: id(), householdId, userId, name: "Maya", familyRole: "Mother", avatar: "bunny", avatarColor: "peach", role: "administrator", status: "active", grants: ["care", "tasks", "documents", "medication", "appointments"] },
+      { id: id(), householdId, userId: alexUserId, name: "Alex", familyRole: "Father", avatar: "bear", avatarColor: "sky", role: "caregiver", status: "active", grants: ["care", "tasks", "shifts"] },
+      { id: id(), householdId, name: "Sam", familyRole: "Helper", avatar: "fox", avatarColor: "butter", role: "helper", status: "invited", grants: ["tasks"] },
     ]);
     await tx.insert(familyRecords).values(rows);
   });

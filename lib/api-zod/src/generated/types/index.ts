@@ -24,6 +24,8 @@ export * from './memberUpdate';
 export * from './memberUpdateStatus';
 export * from './personaInput';
 export * from './profileInput';
+export * from './profileInputAvatar';
+export * from './profileInputAvatarColor';
 export * from './profileInputStage';
 export * from './recordInput';
 export * from './recordInputKind';

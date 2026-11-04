@@ -10,8 +10,10 @@ import { ago, fmtClock, fmtDate, fmtTime } from "@/lib/format";
 import { GRANTS, CHECKLISTS } from "@/lib/content";
 import { Btn, Chip, Surface, Tag, SectionTitle, Empty, KindSection, ChecklistCard, Confirm, Meta, inputCls, useStale, FieldInput } from "@/components/kit";
 import { cn } from "@/lib/utils";
+import { AnimalAvatar, permissionLabel } from "@/components/avatar";
+import { FamilyRolePicker } from "@/components/profile-editor";
 
-const TABS = [["circle", "Circle"], ["tasks", "Tasks"], ["help", "Help"], ["shifts", "Shifts"], ["handover", "Handover"], ["childcare", "Childcare"], ["export", "Export"]] as const;
+const TABS = [["circle", "Circle"], ["tasks", "Tasks"], ["help", "Help"], ["shifts", "Care time"], ["handover", "Handover"], ["childcare", "Childcare"], ["export", "Export"]] as const;
 
 export default function TogetherPage() {
   const search = new URLSearchParams(useSearch());
@@ -55,7 +57,7 @@ function Circle() {
   const name = (id: string) => boot.members.find((m) => m.id === id)?.name || "a member";
   return (
     <>
-      <SectionTitle title="Your support circle" sub="Access is scoped by what you grant. Administration doesn't establish legal guardianship."
+      <SectionTitle title="Your support circle" sub="Family roles are how people are known; access is what you grant. One never sets the other. Administration doesn't establish legal guardianship."
         action={isAdmin && <Btn size="sm" onClick={() => setInvite(true)} data-testid="button-invite"><UserPlus className="h-4 w-4" />Invite</Btn>} />
 
       {transfers.map((t) => {
@@ -87,11 +89,12 @@ function Circle() {
             <li key={m.id}>
               <Surface className={cn("p-4", revoked && "opacity-70")} data-testid={`member-${m.id}`}>
                 <div className="flex items-start gap-3">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sky font-bold text-accent-foreground">{m.name.slice(0, 1)}</span>
+                  <AnimalAvatar member={m} size="lg" />
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold">{m.name}{self && " (you)"}</p>
+                    <p className="font-semibold" data-testid={`text-member-name-${m.id}`}>{m.name}{self && " (you)"}</p>
+                    <p className="text-sm text-muted-foreground" data-testid={`text-family-role-${m.id}`}>{m.familyRole || (self ? "Add your family role in Settings" : "Family role not set")}</p>
                     <div className="mt-1 flex flex-wrap gap-1.5">
-                      <Tag tone="sage" className="capitalize">{m.role}</Tag>
+                      <Tag tone="sage" className="capitalize"><span className="sr-only">Access: </span>{permissionLabel(m.role)}</Tag>
                       <Tag tone={revoked ? "warn" : "muted"}>{m.status}</Tag>
                       {m.expiresAt ? <Tag tone="peach">Temporary · until {fmtDate(m.expiresAt)}</Tag> : <Tag>Ongoing</Tag>}
                     </div>
@@ -137,17 +140,18 @@ function Circle() {
 
 function InviteDialog({ open, onOpenChange, requestId, presetName }: { open: boolean; onOpenChange: (o: boolean) => void; requestId?: string; presetName?: string }) {
   const [name, setName] = useState(presetName || "");
+  const [familyRole, setFamilyRole] = useState("");
   const [role, setRole] = useState<InvitationInputRole>(requestId ? "helper" : "caregiver");
   const [grants, setGrants] = useState<string[]>(requestId ? ["tasks"] : ["baby-logs", "routines", "shifts"]);
   const [temp, setTemp] = useState(false);
   const [until, setUntil] = useState("");
   const [url, setUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (open) { setUrl(null); setName(presetName || ""); } }, [open, presetName]);
+  useEffect(() => { if (open) { setUrl(null); setName(presetName || ""); setFamilyRole(""); } }, [open, presetName]);
   const go = async () => {
     setBusy(true);
     try {
-      const inv = await createInvitation({ name: name || "Helper", role, grants, expiresAt: temp && until ? new Date(until + "T23:59:00").toISOString() : undefined, requestId });
+      const inv = await createInvitation({ name: name || "Helper", familyRole: familyRole.trim().slice(0, 40) || undefined, role, grants, expiresAt: temp && until ? new Date(until + "T23:59:00").toISOString() : undefined, requestId });
       const full = inv.url ? (inv.url.startsWith("http") ? inv.url : `${window.location.origin}${inv.url}`) : "";
       setUrl(full);
     } catch (e) { toast({ title: "Couldn't create the link", description: errMessage(e), variant: "destructive" }); }
@@ -169,7 +173,8 @@ function InviteDialog({ open, onOpenChange, requestId, presetName }: { open: boo
         ) : (
           <div className="space-y-4">
             <FieldInput f={{ key: "name", label: "Their name" }} value={name} onChange={(v) => setName(String(v))} />
-            {!requestId && <FieldInput f={{ key: "role", label: "Role", type: "select", options: [{ value: "caregiver", label: "Caregiver" }, { value: "helper", label: "Limited helper" }, { value: "coadministrator", label: "Co-administrator" }] }} value={role} onChange={(v) => setRole(v as InvitationInputRole)} />}
+            {!requestId && <FamilyRolePicker value={familyRole} onChange={setFamilyRole} optional idPrefix="inv-fr" />}
+            {!requestId && <FieldInput f={{ key: "role", label: "Access level", hint: "This sets what they can do — separate from their family role. They can change their own role and avatar later.", type: "select", options: [{ value: "caregiver", label: "Caregiver" }, { value: "helper", label: "Limited helper" }, { value: "coadministrator", label: "Co-administrator" }] }} value={role} onChange={(v) => setRole(v as InvitationInputRole)} />}
             {!requestId && <div><p className="mb-1.5 text-sm font-semibold">What they can see</p><div className="flex flex-wrap gap-2">{GRANTS.map((g) => <Chip key={g.key} className="min-h-9 text-sm" active={grants.includes(g.key)} onClick={() => setGrants(grants.includes(g.key) ? grants.filter((x) => x !== g.key) : [...grants, g.key])}>{g.label}</Chip>)}</div><p className="mt-1 text-xs text-muted-foreground">Your private records are never included.</p></div>}
             <div><p className="mb-1.5 text-sm font-semibold">How long</p><div className="flex gap-2"><Chip active={!temp} onClick={() => setTemp(false)}>Ongoing</Chip><Chip active={temp} onClick={() => setTemp(true)}>Until a date</Chip></div>{temp && <input type="date" className={cn(inputCls, "mt-2")} value={until} onChange={(e) => setUntil(e.target.value)} aria-label="Access end date" />}</div>
             <Btn onClick={go} disabled={busy || (temp && !until)} data-testid="button-create-invite"><Link2 className="h-4 w-4" />{busy ? "Creating…" : "Create link"}</Btn>
@@ -235,7 +240,7 @@ function Help({ prepare }: { prepare: string | null }) {
           <label className="mt-4 block text-sm font-semibold" htmlFor="help-when">When (optional)</label>
           <input id="help-when" type="date" className={cn(inputCls, "mt-1")} value={when_} onChange={(e) => setWhen(e.target.value)} />
           <p className="mt-4 text-sm font-semibold">Who should see it?</p>
-          <div className="mt-2 flex flex-wrap gap-2">{others.map((m) => <Chip key={m.id} active={recips.includes(m.name)} onClick={() => setRecips(recips.includes(m.name) ? recips.filter((x) => x !== m.name) : [...recips, m.name])}>{m.name}</Chip>)}{!others.length && <span className="text-sm text-muted-foreground">No one in your circle yet — you can share a limited link after.</span>}</div>
+          <div className="mt-2 flex flex-wrap gap-2">{others.map((m) => <Chip key={m.id} aria-label={`${m.name}${m.familyRole ? `, ${m.familyRole}` : ""}`} active={recips.includes(m.name)} onClick={() => setRecips(recips.includes(m.name) ? recips.filter((x) => x !== m.name) : [...recips, m.name])}><AnimalAvatar member={m} size="xs" decorative />{m.name}{m.familyRole && <span className="text-xs opacity-75">{m.familyRole}</span>}</Chip>)}{!others.length && <span className="text-sm text-muted-foreground">No one in your circle yet — you can share a limited link after.</span>}</div>
           <div className="mt-4 flex gap-2"><Btn onClick={() => setStep("preview")} data-testid="button-preview-help"><Eye className="h-4 w-4" />Preview</Btn><Btn variant="ghost" onClick={() => setStep(null)}>Cancel</Btn></div>
         </Surface>
       )}
@@ -281,12 +286,12 @@ function Shifts() {
   const tz = boot.profile.timezone;
   return (
     <>
-      <Surface tone="sand" className="mb-6 text-sm">Shifts show who has <strong>accepted</strong> responsibility. Together doesn't verify who is physically caring. If someone is feeding, agree with them before scheduling them away — the app never does it automatically.</Surface>
-      <KindSection title="Care & rest shifts" kind="shift" scope="household" testid="section-shifts"
-        empty="No shifts yet" emptyBody="Offer a night shift, or protect a rest block for someone recovering."
+      <Surface tone="sand" className="mb-6 text-sm">Care time shows who has <strong>accepted</strong> responsibility. Together doesn't verify who is physically caring. If someone is feeding, agree with them before scheduling them away — the app never does it automatically.</Surface>
+      <KindSection title="Care time & protected rest" kind="shift" scope="household" testid="section-shifts"
+        empty="No care time planned yet" emptyBody="Offer to cover a night, or protect a rest window for someone recovering."
         defaults={{ status: "offered", "data.type": "care" }}
-        fields={[{ key: "title", label: "Name", required: true, placeholder: "Night shift" }, { key: "data.type", label: "Type", type: "select", options: [{ value: "care", label: "Care shift" }, { value: "rest", label: "Protected rest" }] }, { key: "data.startAt", label: "Starts", type: "datetime" }, { key: "data.endAt", label: "Ends", type: "datetime" }, { key: "data.assignee", label: "Responsible person", type: "member" }, { key: "status", label: "Status", type: "select", options: [{ value: "offered", label: "Offered" }, { value: "accepted", label: "Accepted" }] }, { key: "notes", label: "Notes", type: "textarea", hint: "e.g. bottles in the fridge, feeding parent sleeping in the back room" }]}
-        line={(r) => <><span className="flex flex-wrap gap-1.5"><Tag tone={ds(r, "type") === "rest" ? "peach" : "sky"}>{ds(r, "type") === "rest" ? "Protected rest" : "Care shift"}</Tag><Tag tone={r.status === "accepted" ? "sage" : r.status === "change requested" ? "warn" : "muted"}>{r.status === "accepted" ? "Accepted" : r.status === "change requested" ? "Change requested" : "Offered — not yet accepted"}</Tag></span>
+        fields={[{ key: "title", label: "Name", required: true, placeholder: "Night care window" }, { key: "data.type", label: "Type", type: "select", options: [{ value: "care", label: "Care window" }, { value: "rest", label: "Protected rest" }] }, { key: "data.startAt", label: "Starts", type: "datetime" }, { key: "data.endAt", label: "Ends", type: "datetime" }, { key: "data.assignee", label: "Responsible person", type: "member" }, { key: "status", label: "Status", type: "select", options: [{ value: "offered", label: "Offered" }, { value: "accepted", label: "Accepted" }] }, { key: "notes", label: "Notes", type: "textarea", hint: "e.g. bottles in the fridge, feeding parent sleeping in the back room" }]}
+        line={(r) => <><span className="flex flex-wrap gap-1.5"><Tag tone={ds(r, "type") === "rest" ? "peach" : "sky"}>{ds(r, "type") === "rest" ? "Protected rest" : "Care window"}</Tag><Tag tone={r.status === "accepted" ? "sage" : r.status === "change requested" ? "warn" : "muted"}>{r.status === "accepted" ? "Accepted" : r.status === "change requested" ? "Change requested" : "Offered — not yet accepted"}</Tag></span>
           <span className="mt-1 block">{fmtTime(ds(r, "startAt"), tz)} – {fmtClock(ds(r, "endAt"), tz)} · {ds(r, "assignee") || "Nobody yet"}</span>
           {ds(r, "changeRequest") && <span className="mt-1 block text-sm">Change asked: "{ds(r, "changeRequest")}"</span>}</>}
         actions={(r) => <>
@@ -295,7 +300,7 @@ function Shifts() {
           {r.status === "accepted" && <Btn size="sm" variant="ghost" onClick={() => update.mutate({ id: r.id, data: { status: "offered", data: { ...(r.data as object), assignee: null } } })}>Hand back</Btn>}
         </>} />
       <Confirm open={!!change} onOpenChange={(o) => !o && setChange(null)} title="Request a change" confirm="Send request"
-        body={<><p>Everyone who can see shifts will see this request. The shift stays as it is until someone accepts the change.</p><textarea rows={3} className={cn(inputCls, "mt-2")} value={changeText} onChange={(e) => setChangeText(e.target.value)} placeholder="Could we swap to Thursday night?" aria-label="Change request" /></>}
+        body={<><p>Everyone who can see care time will see this request. The care window stays as it is until someone accepts the change.</p><textarea rows={3} className={cn(inputCls, "mt-2")} value={changeText} onChange={(e) => setChangeText(e.target.value)} placeholder="Could we swap to Thursday night?" aria-label="Change request" /></>}
         onConfirm={() => change && update.mutate({ id: change.id, data: { status: "change requested", data: { ...(change.data as object), changeRequest: changeText || "Change requested" } } })} />
     </>
   );
@@ -420,7 +425,7 @@ function ExportPanel() {
       <SectionTitle title="Export records" sub="Choose exactly what's included. Exports are audited. Exporting doesn't send anything to anyone." />
       <Surface className="mb-4">
         <div className="flex flex-wrap gap-2">{(["text", "json", "ics"] as const).map((f) => <Chip key={f} active={format === f} onClick={() => setFormat(f)}>{f === "ics" ? "Calendar (.ics)" : f.toUpperCase()}</Chip>)}</div>
-        {format === "ics" && <p className="mt-2 text-xs text-muted-foreground">Calendar files include appointments and shifts only. Titles are discreet; notes only if chosen on the appointment.</p>}
+        {format === "ics" && <p className="mt-2 text-xs text-muted-foreground">Calendar files include appointments and care time only. Titles are discreet; notes only if chosen on the appointment.</p>}
         <input className={cn(inputCls, "mt-3")} placeholder="Purpose (optional) — e.g. for our midwife" value={purpose} onChange={(e) => setPurpose(e.target.value)} aria-label="Purpose" />
         <div className="mt-3 flex flex-wrap gap-2">
           <Btn variant="soft" disabled={!sel.size || busy} onClick={() => go(false)}><Eye className="h-4 w-4" />Preview</Btn>

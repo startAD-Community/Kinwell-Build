@@ -1,2 +1,3 @@
 - [Parenthood product boundaries](parenthood-boundaries.md) — preserve all stages and approved feature areas; label clinical and external-service dependencies honestly.
 - [Embedded preview verification](embedded-preview-verification.md) — top-level screenshots do not prove embedded session persistence; check iframe reload and retry.
+- [Family identity and language](family-identity-and-language.md) — voluntary family roles stay separate from access; use “Care time” rather than “shift.”

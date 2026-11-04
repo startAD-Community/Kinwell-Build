@@ -276,6 +276,9 @@ components:
       type: object
       properties:
         name: { type: string }
+        familyRole: { type: string, maxLength: 40 }
+        avatar: { type: string, enum: [bunny, bear, fox, cat, panda, koala, owl, penguin] }
+        avatarColor: { type: string, enum: [sage, peach, sky, lavender, butter] }
         stage: { type: string, enum: [preconception, pregnancy, postpartum, paused] }
         role: { type: string }
         country: { type: string }
@@ -342,6 +345,9 @@ components:
       properties:
         id: { type: string }
         name: { type: string }
+        familyRole: { type: string }
+        avatar: { type: string }
+        avatarColor: { type: string }
         role: { type: string }
         status: { type: string }
         grants: { type: array, items: { type: string } }
@@ -360,6 +366,7 @@ components:
       required: [name, role, grants]
       properties:
         name: { type: string }
+        familyRole: { type: string, maxLength: 40 }
         role: { type: string, enum: [caregiver, helper, coadministrator] }
         grants: { type: array, items: { type: string } }
         expiresAt: { type: string }
@@ -370,6 +377,7 @@ components:
       properties:
         id: { type: string }
         name: { type: string }
+        familyRole: { type: string }
         role: { type: string }
         status: { type: string }
         grants: { type: array, items: { type: string } }

@@ -230,7 +230,7 @@ export function RecordDialog({ open, onOpenChange, kind, heading, fields, record
         </DialogHeader>
         <div className="space-y-4">
           {fields.map((f) => (
-            <FieldInput key={f.key} f={f} value={vals[f.key]} onChange={(x) => set(f.key, x)} members={boot.members.map((m) => ({ value: m.name, label: m.name }))} />
+            <FieldInput key={f.key} f={f} value={vals[f.key]} onChange={(x) => set(f.key, x)} members={boot.members.filter((m) => m.status !== "revoked" || (Array.isArray(vals[f.key]) ? (vals[f.key] as string[]).includes(m.name) : vals[f.key] === m.name)).map((m) => ({ value: m.name, label: m.familyRole ? `${m.name} · ${m.familyRole}` : m.name }))} />
           ))}
           {err && <p role="alert" className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">{err}</p>}
         </div>
@@ -260,25 +260,29 @@ export function FieldInput({ f, value, onChange, members = [] }: { f: Field; val
   const opts = f.type === "member" || f.type === "members" ? members : f.options || [];
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-semibold">{f.label}{f.required && <span className="sr-only"> (required)</span>}</label>
+      <label htmlFor={id} id={`${id}-label`} className="mb-1.5 block text-sm font-semibold">{f.label}{f.required && <span className="sr-only"> (required)</span>}</label>
       {f.type === "textarea" ? (
         <textarea id={id} rows={3} className={inputCls} placeholder={f.placeholder} value={String(value ?? "")} onChange={(e) => onChange(e.target.value)} />
       ) : f.type === "select" || f.type === "member" ? (
-        <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby={id}>
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby={`${id}-label`}>
           {f.type === "member" && <Chip active={!value} onClick={() => onChange("")}>Nobody yet</Chip>}
           {opts.map((o) => <Chip key={o.value} active={value === o.value} onClick={() => onChange(o.value)} role="radio" aria-checked={value === o.value}>{o.label}</Chip>)}
         </div>
       ) : f.type === "members" ? (
-        <div className="flex flex-wrap gap-2">
-          {opts.map((o) => {
+        <div className="flex flex-wrap gap-2" role="group" aria-labelledby={`${id}-label`}>
+          {(() => {
             const arr = Array.isArray(value) ? (value as string[]) : [];
-            const on = arr.includes(o.value);
-            return <Chip key={o.value} active={on} onClick={() => onChange(on ? arr.filter((x) => x !== o.value) : [...arr, o.value])}>{o.label}</Chip>;
-          })}
+            // Keep saved names that no longer match a member visible so they can be removed, not silently kept.
+            const all = [...opts, ...arr.filter((x) => !opts.some((o) => o.value === x)).map((x) => ({ value: x, label: `${x} (not in circle)` }))];
+            return all.map((o) => {
+              const on = arr.includes(o.value);
+              return <Chip key={o.value} role="checkbox" aria-checked={on} aria-pressed={undefined} active={on} onClick={() => onChange(on ? arr.filter((x) => x !== o.value) : [...arr, o.value])} data-testid={`chip-member-${o.value}`}>{o.label}</Chip>;
+            });
+          })()}
           {!opts.length && <span className="text-sm text-muted-foreground">No one in your circle yet.</span>}
         </div>
       ) : f.type === "toggle" ? (
-        <Chip active={!!value} onClick={() => onChange(!value)}>{value ? "Yes" : "No"}</Chip>
+        <Chip role="switch" aria-checked={!!value} aria-pressed={undefined} aria-labelledby={`${id}-label`} active={!!value} onClick={() => onChange(!value)}>{value ? "Yes" : "No"}</Chip>
       ) : (
         <input id={id} className={inputCls} placeholder={f.placeholder}
           type={f.type === "datetime" ? "datetime-local" : f.type === "date" ? "date" : f.type === "number" ? "number" : "text"}

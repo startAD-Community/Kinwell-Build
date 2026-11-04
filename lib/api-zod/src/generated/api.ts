@@ -12,6 +12,8 @@ export const HealthCheckResponse = zod.object({
 })
 
 
+export const getBootstrapResponseProfileOneFamilyRoleMax = 40;
+
 export const getBootstrapResponseRecordsItemOneTitleMax = 300;
 
 export const getBootstrapResponseRecordsItemOneNotesMax = 10000;
@@ -21,6 +23,9 @@ export const getBootstrapResponseRecordsItemOneNotesMax = 10000;
 export const GetBootstrapResponse = zod.object({
   "profile": zod.object({
   "name": zod.string().optional(),
+  "familyRole": zod.string().max(getBootstrapResponseProfileOneFamilyRoleMax).optional(),
+  "avatar": zod.enum(['bunny', 'bear', 'fox', 'cat', 'panda', 'koala', 'owl', 'penguin']).optional(),
+  "avatarColor": zod.enum(['sage', 'peach', 'sky', 'lavender', 'butter']).optional(),
   "stage": zod.enum(['preconception', 'pregnancy', 'postpartum', 'paused']).optional(),
   "role": zod.string().optional(),
   "country": zod.string().optional(),
@@ -61,6 +66,9 @@ export const GetBootstrapResponse = zod.object({
   "members": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "familyRole": zod.string().optional(),
+  "avatar": zod.string().optional(),
+  "avatarColor": zod.string().optional(),
   "role": zod.string(),
   "status": zod.string(),
   "grants": zod.array(zod.string()),
@@ -76,6 +84,8 @@ export const StartDemoBody = zod.object({
   "reset": zod.boolean().optional()
 })
 
+export const startDemoResponseProfileOneFamilyRoleMax = 40;
+
 export const startDemoResponseRecordsItemOneTitleMax = 300;
 
 export const startDemoResponseRecordsItemOneNotesMax = 10000;
@@ -85,6 +95,9 @@ export const startDemoResponseRecordsItemOneNotesMax = 10000;
 export const StartDemoResponse = zod.object({
   "profile": zod.object({
   "name": zod.string().optional(),
+  "familyRole": zod.string().max(startDemoResponseProfileOneFamilyRoleMax).optional(),
+  "avatar": zod.enum(['bunny', 'bear', 'fox', 'cat', 'panda', 'koala', 'owl', 'penguin']).optional(),
+  "avatarColor": zod.enum(['sage', 'peach', 'sky', 'lavender', 'butter']).optional(),
   "stage": zod.enum(['preconception', 'pregnancy', 'postpartum', 'paused']).optional(),
   "role": zod.string().optional(),
   "country": zod.string().optional(),
@@ -125,6 +138,9 @@ export const StartDemoResponse = zod.object({
   "members": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "familyRole": zod.string().optional(),
+  "avatar": zod.string().optional(),
+  "avatarColor": zod.string().optional(),
   "role": zod.string(),
   "status": zod.string(),
   "grants": zod.array(zod.string()),
@@ -139,6 +155,8 @@ export const SwitchDemoPersonaBody = zod.object({
   "memberId": zod.string()
 })
 
+export const switchDemoPersonaResponseProfileOneFamilyRoleMax = 40;
+
 export const switchDemoPersonaResponseRecordsItemOneTitleMax = 300;
 
 export const switchDemoPersonaResponseRecordsItemOneNotesMax = 10000;
@@ -148,6 +166,9 @@ export const switchDemoPersonaResponseRecordsItemOneNotesMax = 10000;
 export const SwitchDemoPersonaResponse = zod.object({
   "profile": zod.object({
   "name": zod.string().optional(),
+  "familyRole": zod.string().max(switchDemoPersonaResponseProfileOneFamilyRoleMax).optional(),
+  "avatar": zod.enum(['bunny', 'bear', 'fox', 'cat', 'panda', 'koala', 'owl', 'penguin']).optional(),
+  "avatarColor": zod.enum(['sage', 'peach', 'sky', 'lavender', 'butter']).optional(),
   "stage": zod.enum(['preconception', 'pregnancy', 'postpartum', 'paused']).optional(),
   "role": zod.string().optional(),
   "country": zod.string().optional(),
@@ -188,6 +209,9 @@ export const SwitchDemoPersonaResponse = zod.object({
   "members": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "familyRole": zod.string().optional(),
+  "avatar": zod.string().optional(),
+  "avatarColor": zod.string().optional(),
   "role": zod.string(),
   "status": zod.string(),
   "grants": zod.array(zod.string()),
@@ -198,8 +222,15 @@ export const SwitchDemoPersonaResponse = zod.object({
 })
 
 
+export const updateProfileBodyFamilyRoleMax = 40;
+
+
+
 export const UpdateProfileBody = zod.object({
   "name": zod.string().optional(),
+  "familyRole": zod.string().max(updateProfileBodyFamilyRoleMax).optional(),
+  "avatar": zod.enum(['bunny', 'bear', 'fox', 'cat', 'panda', 'koala', 'owl', 'penguin']).optional(),
+  "avatarColor": zod.enum(['sage', 'peach', 'sky', 'lavender', 'butter']).optional(),
   "stage": zod.enum(['preconception', 'pregnancy', 'postpartum', 'paused']).optional(),
   "role": zod.string().optional(),
   "country": zod.string().optional(),
@@ -217,6 +248,8 @@ export const UpdateProfileBody = zod.object({
   "confirmed": zod.boolean().optional()
 })
 
+export const updateProfileResponseProfileOneFamilyRoleMax = 40;
+
 export const updateProfileResponseRecordsItemOneTitleMax = 300;
 
 export const updateProfileResponseRecordsItemOneNotesMax = 10000;
@@ -226,6 +259,9 @@ export const updateProfileResponseRecordsItemOneNotesMax = 10000;
 export const UpdateProfileResponse = zod.object({
   "profile": zod.object({
   "name": zod.string().optional(),
+  "familyRole": zod.string().max(updateProfileResponseProfileOneFamilyRoleMax).optional(),
+  "avatar": zod.enum(['bunny', 'bear', 'fox', 'cat', 'panda', 'koala', 'owl', 'penguin']).optional(),
+  "avatarColor": zod.enum(['sage', 'peach', 'sky', 'lavender', 'butter']).optional(),
   "stage": zod.enum(['preconception', 'pregnancy', 'postpartum', 'paused']).optional(),
   "role": zod.string().optional(),
   "country": zod.string().optional(),
@@ -266,6 +302,9 @@ export const UpdateProfileResponse = zod.object({
   "members": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "familyRole": zod.string().optional(),
+  "avatar": zod.string().optional(),
+  "avatarColor": zod.string().optional(),
   "role": zod.string(),
   "status": zod.string(),
   "grants": zod.array(zod.string()),
@@ -362,8 +401,13 @@ export const DeleteRecordParams = zod.object({
 export const DeleteRecordResponse = zod.void()
 
 
+export const createInvitationBodyFamilyRoleMax = 40;
+
+
+
 export const CreateInvitationBody = zod.object({
   "name": zod.string(),
+  "familyRole": zod.string().max(createInvitationBodyFamilyRoleMax).optional(),
   "role": zod.enum(['caregiver', 'helper', 'coadministrator']),
   "grants": zod.array(zod.string()),
   "expiresAt": zod.string().optional(),
@@ -379,6 +423,7 @@ export const createInvitationResponseRequestOneNotesMax = 10000;
 export const CreateInvitationResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "familyRole": zod.string().optional(),
   "role": zod.string(),
   "status": zod.string(),
   "grants": zod.array(zod.string()),
@@ -415,6 +460,7 @@ export const getInvitationResponseRequestOneNotesMax = 10000;
 export const GetInvitationResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "familyRole": zod.string().optional(),
   "role": zod.string(),
   "status": zod.string(),
   "grants": zod.array(zod.string()),
@@ -451,6 +497,7 @@ export const acceptInvitationResponseRequestOneNotesMax = 10000;
 export const AcceptInvitationResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "familyRole": zod.string().optional(),
   "role": zod.string(),
   "status": zod.string(),
   "grants": zod.array(zod.string()),

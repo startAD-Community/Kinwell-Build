@@ -76,7 +76,7 @@ export const CHECKLISTS: Record<string, { title: string; items: string[]; jurisd
   birthplan: { title: "Birth preferences", items: ["Who I'd like with me", "Comfort and pain-relief preferences to discuss", "Feeding plan for the first hours", "What to do if plans change"] },
   firstweeks: { title: "First weeks at home", items: ["Meal rota arranged", "Visitor plan agreed", "Night tasks shared out", "Supplies: nappies, wipes, muslins", "Postnatal check booked"] },
   packing: { title: "Childcare packing list", items: ["Spare clothes x2", "Nappies and wipes", "Labelled bottles or milk", "Comfort item", "Sun hat / warm hat"] },
-  returnwork: { title: "Return-to-work preparation", items: ["Childcare start date confirmed", "Settling-in sessions booked", "Feeding plan agreed with childcare", "Care shifts for drop-off and pick-up", "Calendar events added"] },
+  returnwork: { title: "Return-to-work preparation", items: ["Childcare start date confirmed", "Settling-in sessions booked", "Feeding plan agreed with childcare", "Care time for drop-off and pick-up", "Calendar events added"] },
   admin: { title: "Local admin timeline", jurisdiction: "United Kingdom — sample", reviewDate: "Not reviewed", items: ["Register the birth (check the official deadline on gov.uk)", "Tell your employer and confirm leave dates", "Check which benefits you may be eligible for on the official site", "Register baby with a GP", "Look into childcare applications and waiting lists"] },
 };
 
@@ -98,7 +98,7 @@ export const GRANTS = [
   { key: "baby-logs", label: "Baby care logs" },
   { key: "routines", label: "Routines and 'what works'" },
   { key: "tasks", label: "Tasks and help requests" },
-  { key: "shifts", label: "Care shifts" },
+  { key: "shifts", label: "Care time & rest" },
   { key: "appointments", label: "Shared appointments" },
   { key: "medication", label: "Baby medication" },
   { key: "documents", label: "Baby documents" },

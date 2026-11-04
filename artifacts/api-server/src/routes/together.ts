@@ -3,7 +3,7 @@ import { getAuth } from "@clerk/express";
 import { eq, and } from "drizzle-orm";
 import { db, profiles, households, memberships, familyRecords, invitations } from "@workspace/db";
 import { StartDemoBody, UpdateProfileBody, CreateRecordBody, UpdateRecordBody, CreateInvitationBody, ExportRecordsBody, RequestUploadBody } from "@workspace/api-zod";
-import { context, bootstrap, id, token, hash, fail, audit, isAdmin, accessibleRecord, serialize, visibleRecords, canWrite } from "../lib/together-context";
+import { context, bootstrap, id, token, hash, fail, audit, isAdmin, accessibleRecord, serialize, visibleRecords, canWrite, memberIdentity } from "../lib/together-context";
 import { createDemo } from "../lib/together-seed";
 import { ObjectStorageService } from "../lib/objectStorage";
 import { z } from "zod";
@@ -70,10 +70,24 @@ router.patch("/together/profile", async (req, res) => {
   const body = parse(UpdateProfileBody, req.body);
   if (body.timezone) try { new Intl.DateTimeFormat("en", { timeZone: body.timezone }); } catch { fail(400, "Choose a valid timezone."); }
   if (body.stage && body.stage !== c.profile.stage && !body.confirmed) fail(400, "Please confirm this stage change.");
-  const { confirmed: _confirmed, ...changes } = body;
+  if (body.name !== undefined && (!body.name.trim() || body.name.trim().length > 80)) fail(400, "Choose a name between 1 and 80 characters.");
+  const { confirmed: _confirmed, role: _permissionRole, ...changes } = body;
+  if (changes.name !== undefined) changes.name = changes.name.trim();
+  if (changes.familyRole !== undefined) changes.familyRole = changes.familyRole.trim();
   const nextProfile = { ...c.profile, ...changes };
-  await db.update(profiles).set({ data: nextProfile }).where(eq(profiles.id, c.userId));
-  if (body.name) await db.update(memberships).set({ name: body.name }).where(eq(memberships.id, c.member.id));
+  const identityChanges = {
+    ...(changes.name !== undefined ? { name: changes.name } : {}),
+    ...(changes.familyRole !== undefined ? { familyRole: changes.familyRole } : {}),
+    ...(changes.avatar !== undefined ? { avatar: changes.avatar } : {}),
+    ...(changes.avatarColor !== undefined ? { avatarColor: changes.avatarColor } : {}),
+  };
+  let updatedMember = c.member;
+  await db.transaction(async tx => {
+    await tx.update(profiles).set({ data: nextProfile }).where(eq(profiles.id, c.userId));
+    if (Object.keys(identityChanges).length) {
+      [updatedMember] = await tx.update(memberships).set(identityChanges).where(eq(memberships.id, c.member.id)).returning();
+    }
+  });
   if (body.stage && body.stage !== c.profile.stage) {
     await audit(c, "stage.transition", undefined, { previousStage: c.profile.stage, nextStage: body.stage });
     if (body.stage === "paused") {
@@ -85,7 +99,7 @@ router.patch("/together/profile", async (req, res) => {
       else await db.insert(familyRecords).values({ id: id(), householdId: c.householdId, authorId: c.userId, authorName: nextProfile.name || c.member.name, kind: "child", title: body.childName || "Your baby", scope: "baby", data: { birthDate: body.birthDate || "" } });
     }
   }
-  res.json(await bootstrap({ ...c, profile: nextProfile }));
+  res.json(await bootstrap({ ...c, member: updatedMember, profile: nextProfile }));
 });
 router.post("/together/records", async (req, res) => {
   const c = await context(req);
@@ -192,11 +206,11 @@ router.post("/together/invitations", async (req, res) => {
   const raw = token(), memberId = id(), invitationId = id();
   const grants = body.role === "helper" ? ["tasks"] : body.grants.filter(g => ["care", "baby-logs", "routines", "shifts", "contacts", "tasks", "appointments", "documents", "medication", "baby-care", "baby"].includes(g));
   await db.transaction(async tx => {
-    await tx.insert(memberships).values({ id: memberId, householdId: c.householdId, name: body.name, role: body.role, status: "invited", grants, expiresAt });
+    await tx.insert(memberships).values({ id: memberId, householdId: c.householdId, name: body.name, role: body.role, familyRole: body.familyRole?.trim() || (body.role === "helper" ? "Helper" : ""), status: "invited", grants, expiresAt });
     await tx.insert(invitations).values({ id: invitationId, tokenHash: hash(raw), householdId: c.householdId, memberId, requestId: body.requestId, expiresAt, createdBy: c.userId });
   });
   await audit(c, "invitation.created", invitationId);
-  res.json({ id: memberId, name: body.name, role: body.role, grants, status: "invited", url: `/invite/${raw}` });
+  res.json({ id: memberId, name: body.name, role: body.role, familyRole: body.familyRole?.trim() || (body.role === "helper" ? "Helper" : ""), grants, status: "invited", url: `/invite/${raw}` });
 });
 async function invitationFor(raw: string) {
   const [invite] = await db.select().from(invitations).where(eq(invitations.tokenHash, hash(raw)));
@@ -213,7 +227,7 @@ router.get("/together/invitations/:token", async (req, res) => {
     // Capability exposes only the practical request; never all household records.
     if (r) request = { ...serialize(r), data: { dueDate: r.data.dueDate, assignee: r.data.assignee }, childId: undefined };
   }
-  res.set("Cache-Control", "no-store").json({ id: member.id, name: member.name, role: member.role, grants: member.grants, status: member.status, request });
+  res.set("Cache-Control", "no-store").json({ id: member.id, name: member.name, familyRole: memberIdentity(member).familyRole, role: member.role, grants: member.grants, status: member.status, request });
 });
 router.post("/together/invitations/:token", async (req, res) => {
   const { invite, member } = await invitationFor(String(req.params.token));

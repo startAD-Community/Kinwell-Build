@@ -13,6 +13,12 @@ export async function audit(c: Context, action: string, resourceId?: string, pre
   await db.insert(audits).values({ id: id(), householdId: c.householdId, actorId: c.userId, action, resourceId, previous });
 }
 export function isAdmin(c: Context) { return ["administrator", "coadministrator"].includes(c.member.role); }
+export function memberIdentity(m: MembershipRow) {
+  const choices = ["bunny", "bear", "fox", "cat", "panda", "koala", "owl", "penguin"];
+  const colors = ["sage", "peach", "sky", "lavender", "butter"];
+  const n = [...m.id].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return { familyRole: m.familyRole || (m.role === "helper" ? "Helper" : ""), avatar: m.avatar || choices[n % choices.length], avatarColor: m.avatarColor || colors[n % colors.length] };
+}
 export function canRead(c: Context, r: FamilyRecordRow) {
   if (r.householdId !== c.householdId) return false;
   if (["cycle", "checkin", "symptom"].includes(r.kind) || r.scope === "private") return r.authorId === c.userId;
@@ -68,9 +74,9 @@ export async function visibleRecords(c: Context) {
 export async function bootstrap(c: Context) {
   const members = await db.select().from(memberships).where(eq(memberships.householdId, c.householdId));
   return {
-    profile: { ...c.profile, role: c.member.role, memberId: c.member.id, id: c.userId, householdId: c.householdId, isDemo: c.isDemo },
+    profile: { ...c.profile, ...memberIdentity(c.member), name: c.member.name, role: c.member.role, memberId: c.member.id, id: c.userId, householdId: c.householdId, isDemo: c.isDemo },
     records: (await visibleRecords(c)).sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime()).map(serialize),
-    members: members.map(m => ({ id: m.id, name: m.name, role: m.role, status: m.expiresAt && m.expiresAt < new Date() ? "expired" : m.status, grants: m.grants, expiresAt: m.expiresAt?.toISOString() })),
+    members: members.map(m => ({ id: m.id, name: m.name, ...memberIdentity(m), role: m.role, status: m.expiresAt && m.expiresAt < new Date() ? "expired" : m.status, grants: m.grants, expiresAt: m.expiresAt?.toISOString() })),
     serverTime: new Date().toISOString(),
     calendarStatus: "disconnected",
   };
