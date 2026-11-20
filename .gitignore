@@ -53,3 +53,11 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Local credentials must never be published
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
